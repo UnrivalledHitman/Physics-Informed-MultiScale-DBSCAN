@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>UA-DBSCAN Beginner's Guide</title>
+<link rel="stylesheet" href="style.css">
+</head><body>
+
+<section class="cover">
+  <div class="kicker">Research starter guide</div>
+  <h1>Physics-Informed Multi-Scale DBSCAN for Acoustic Emission Damage Clustering</h1>
+  <div class="sub">A from-scratch introduction to acoustic emission, source localization and its uncertainty, density-based clustering (DBSCAN), and selecting parameters from localization uncertainty, written for someone starting research on UA-DBSCAN.</div>
+  <div class="meta">Prepared for: Indrajeet Mondal · September 2026<br>
+  Companion document: <i>UA-DBSCAN Literature Review</i> (reading list with detailed summaries). Numbers in square brackets such as [5] refer to the numbered reference list at the end of this guide, which uses the same numbering as the literature review.</div>
+</section>
+
+<section class="toc">
+<h2>Contents</h2>
+<ol>
+<li>1. The research topic in plain words</li>
+<li>2. Acoustic emission: the physics and the data</li>
+<li>3. Locating an AE source, and why every location is uncertain</li>
+<li>4. Clustering: the basic idea and the main families</li>
+<li>5. DBSCAN in detail</li>
+<li>6. Relatives of DBSCAN you must know (GDBSCAN, ST-DBSCAN, OPTICS, HDBSCAN, FDBSCAN)</li>
+<li>7. Part (i) of the definition: an uncertainty-scaled space–time distance</li>
+<li>8. Part (ii): choosing ε from a plateau in the cluster-count curve</li>
+<li>9. Part (iii): noise as an explicit "isolated, benign activity" class</li>
+<li>10. What "physics-informed" and "multi-scale" mean here</li>
+<li>11. How to evaluate UA-DBSCAN</li>
+<li>12. A practical starting implementation (Python sketch)</li>
+<li>13. Open questions and pitfalls: where your contribution can be</li>
+<li>14. A suggested first-semester roadmap</li>
+<li>15. Glossary</li>
+<li>16. References</li>
+</ol>
+</section>
+
+<!-- ============================================================ -->
+<h2 class="pb">1. The research topic in plain words</h2>
+
+<p>When a material cracks, it releases a tiny burst of energy that travels through the material as an elastic (sound-like) wave, usually in the 20 kHz to 1 MHz range, well above human hearing. Sensors glued to the surface record these bursts. Each burst is an <b>acoustic emission (AE) event</b>. Using the arrival times at several sensors, you can estimate <i>where</i> each event came from, much as seismologists locate earthquakes.</p>
+
+<p>A test or monitoring campaign can produce thousands to millions of located events. Plotted in 3-D, they look like a cloud of points. Some points form dense streaks or patches: an active crack that keeps emitting. Others are scattered on their own: friction at supports, rubbing crack faces, one-off micro-cracks, or electrical noise. The practical question is:</p>
+
+<div class="box"><b class="t">The core question</b>
+Which events belong together as one active damage zone (a "damage cluster"), and which are isolated background activity?</div>
+
+<p>Answering that is a <b>clustering</b> problem. <b>DBSCAN</b> (Density-Based Spatial Clustering of Applications with Noise) is a natural tool because it (a) does not need the number of cracks in advance, (b) finds clusters of any shape, such as an elongated crack path, and (c) explicitly labels isolated points as "noise". Applied naively, however, DBSCAN has two weaknesses that your topic targets:</p>
+
+<ol>
+<li><b>The radius ε is chosen ad hoc.</b> DBSCAN needs a neighbourhood radius ε. Results change drastically with ε, and in most AE papers it is picked by eye.</li>
+<li><b>Plain Euclidean distance ignores localization uncertainty.</b> An event located near the centre of the sensor array may be accurate to about a millimetre, while one located outside the array may be off by a centimetre or more, and mostly in one direction. Treating both locations as equally reliable points is physically wrong.</li>
+</ol>
+
+<p>Your definition proposes <b>UA-DBSCAN</b> (uncertainty-aware multi-scale DBSCAN) with three ingredients:</p>
+<table>
+<tr><th style="width:18%">Ingredient</th><th>What it says</th><th style="width:38%">Plain meaning</th></tr>
+<tr><td>(i) Distance</td><td>Combine source location and event time, scaled by per-event localization uncertainty.</td><td>Two events are "close" if they are within a few standard errors of each other in space, and close in time.</td></tr>
+<tr><td>(ii) ε-selection rule</td><td>Pick ε from a plateau in the cluster-count curve, subject to a noise-fraction constraint.</td><td>Try many ε values. Choose one where the number of clusters stays stable and the share of noise is reasonable.</td></tr>
+<tr><td>(iii) Noise as a class</td><td>Treat DBSCAN's noise label as "isolated, benign activity", not discarded data.</td><td>Unclustered events are a meaningful third category to report and interpret.</td></tr>
+</table>
+
+<p>The rest of this guide builds every concept you need to understand, implement and critique those three ideas.</p>
+
+<!-- ============================================================ -->
+<h2>2. Acoustic emission: the physics and the data</h2>
+
+<h3>2.1 What produces acoustic emission</h3>
+<p>AE is the transient elastic wave generated by a rapid, local release of strain energy inside a material. Typical sources are crack initiation and growth, fibre breakage, matrix cracking and delamination in composites, dislocation movement in metals, friction between crack faces, and corrosion processes [14, 15]. AE is a <b>passive</b> method: the structure produces the signal itself, and you only listen. It detects <i>active</i> damage, meaning damage that is growing now, not damage that simply exists. That is why grouping events in space and time is so informative: a cluster that keeps growing is an active crack.</p>
+
+<p>The same physics appears at very different scales. Lockner [16] showed that AE in rock specimens behaves like "laboratory earthquakes", and several ideas you will use come from earthquake seismology (Section 13, and Part F of the literature review).</p>
+
+<figure>
+<svg viewBox="0 0 640 170" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <rect x="10" y="30" width="330" height="120" fill="#eef2f5" stroke="#8aa0b2"/>
+  <text x="18" y="24" font-size="11" fill="#333">Specimen (e.g. concrete beam)</text>
+  <path d="M150 150 L160 120 L152 100 L165 80" stroke="#b0552a" stroke-width="3" fill="none"/>
+  <circle cx="160" cy="118" r="4" fill="#b0552a"/>
+  <circle cx="160" cy="118" r="30" fill="none" stroke="#b0552a" stroke-dasharray="3 3"/>
+  <circle cx="160" cy="118" r="60" fill="none" stroke="#b0552a" stroke-dasharray="3 3" opacity=".6"/>
+  <text x="172" y="140" font-size="10" fill="#b0552a">crack tip releases energy</text>
+  <g fill="#1f5f8b"><rect x="22" y="36" width="14" height="10"/><rect x="310" y="36" width="14" height="10"/><rect x="22" y="134" width="14" height="10"/><rect x="310" y="134" width="14" height="10"/></g>
+  <text x="40" y="45" font-size="9" fill="#1f5f8b">S1</text><text x="290" y="45" font-size="9" fill="#1f5f8b">S2</text>
+  <text x="40" y="143" font-size="9" fill="#1f5f8b">S3</text><text x="290" y="143" font-size="9" fill="#1f5f8b">S4</text>
+  <line x1="345" y1="90" x2="380" y2="90" stroke="#555" marker-end="url(#a)"/>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#555"/></marker></defs>
+  <g font-size="10" fill="#222">
+    <rect x="385" y="30" width="245" height="120" fill="#fff" stroke="#8aa0b2"/>
+    <text x="395" y="48">1. Each sensor records a "hit" (waveform)</text>
+    <text x="395" y="68">2. Hits within a time window → 1 "event"</text>
+    <text x="395" y="88">3. Arrival-time differences → location x̂</text>
+    <text x="395" y="108">4. Uncertainty of x̂ → covariance Σ</text>
+    <text x="395" y="128">5. Features: amplitude, energy, RA, AF…</text>
+    <text x="395" y="144" fill="#1f5f8b">Output: catalogue (x̂, t, Σ, features)</text>
+  </g>
+</svg>
+<figcaption>Figure 1. From a crack to an AE catalogue. UA-DBSCAN operates on the catalogue: location, time, uncertainty, and optionally waveform features.</figcaption>
+</figure>
+
+<h3>2.2 Hits, events and waveform features</h3>
+<p>A <b>hit</b> is one sensor detecting one signal, usually when the voltage crosses a preset <b>threshold</b> (for example 40 dB). An <b>event</b> is the physical emission, recognised when several sensors register hits within a short time window consistent with wave travel across the array. Only events with enough hits, typically at least 4 in 3-D, can be located.</p>
+<p>From each waveform, classical parameters are extracted: <b>peak amplitude</b> (in dB<sub>AE</sub>), <b>counts</b> (threshold crossings), <b>duration</b>, <b>rise time</b> (from first threshold crossing to peak), <b>energy</b>, and frequency descriptors. Two derived quantities are widely used in concrete:</p>
+<ul>
+<li><b>RA value</b> = rise time / amplitude (ms/V)</li>
+<li><b>Average frequency (AF)</b> = counts / duration (kHz)</li>
+</ul>
+<p>Tensile cracking tends to give low RA and high AF, while shear-type cracking gives high RA and low AF. This is the basis of the RILEM recommendation [17] and of later studies [18, 19]. These features are not needed for spatial clustering, but they are very useful for <b>validating</b> what your clusters and noise class mean (Section 9).</p>
+
+<h3>2.3 Other quantities you will meet</h3>
+<ul>
+<li><b>b-value</b>: the slope of the amplitude–frequency (Gutenberg–Richter-type) distribution of events. A drop in b-value is associated with a shift from distributed micro-cracking to localized macro-cracking [20].</li>
+<li><b>Kaiser effect / Felicity ratio</b>: a material that has already been loaded tends not to emit again until the previous maximum load is exceeded. Emission below the previous maximum signals damage.</li>
+<li><b>Moment tensor analysis</b> (e.g. SiGMA) uses first-motion amplitudes to classify the crack type and orientation of individual events [14].</li>
+</ul>
+
+<h3>2.4 Waves and why they matter for location</h3>
+<p>In a bulk solid, energy travels as P-waves (fastest, longitudinal) and S-waves (slower, transverse). In thin plates it travels as dispersive <b>Lamb waves</b>, whose speed depends on frequency. Location algorithms usually assume a single known wave speed <i>v</i>. Every departure from that assumption adds location error: heterogeneity (aggregate in concrete), anisotropy (composites), existing cracks that block or detour the path, and dispersion. This is the physical reason each located event has its own, different uncertainty.</p>
+
+<!-- ============================================================ -->
+<h2>3. Locating an AE source, and why every location is uncertain</h2>
+
+<h3>3.1 Time-difference-of-arrival (TDOA) location</h3>
+<p>Let the unknown source position be <b>x</b> = (x, y, z) with unknown origin time <i>t</i><sub>0</sub>. Sensor <i>i</i> sits at a known position <b>s</b><sub><i>i</i></sub> and records the arrival time <i>t</i><sub><i>i</i></sub>. With a constant wave speed <i>v</i>:</p>
+<div class="eq"><i>t</i><sub><i>i</i></sub> = <i>t</i><sub>0</sub> + ‖<b>x</b> − <b>s</b><sub><i>i</i></sub>‖ / <i>v</i> + <i>e</i><sub><i>i</i></sub>,&nbsp;&nbsp; <i>i</i> = 1…<i>N</i> <span class="n">(3.1)</span></div>
+<p>where <i>e</i><sub><i>i</i></sub> is the timing error. There are 4 unknowns, (x, y, z, <i>t</i><sub>0</sub>), so at least 4 sensors are needed in 3-D; more sensors give an over-determined least-squares problem. The classical solver is <b>Geiger's method</b>: linearize (3.1) around a guess, solve a least-squares update, and iterate. Kundu [23] reviews this and many alternatives, including methods that do not need a known wave speed. Grosse, Reinhardt and Dahm [21] describe the practical workflow in concrete.</p>
+
+<h3>3.2 Where the errors come from</h3>
+<ol>
+<li><b>Onset (arrival-time) picking error.</b> The first arrival is buried in noise, and a fixed threshold picks it late for weak signals. Automatic pickers such as the Akaike Information Criterion (AIC) picker reduce this error [22]. Picking error is often the dominant term.</li>
+<li><b>Wave speed error.</b> The assumed <i>v</i> is wrong, varies with direction, or changes as damage accumulates.</li>
+<li><b>Path effects.</b> Cracks, holes or geometry make the true path longer than the straight line.</li>
+<li><b>Sensor geometry.</b> This is the key one for your topic. The same timing error produces a small location error for a source inside a well-spread array, and a large, strongly elongated error for a source near or outside the array edge, or when sensors are almost collinear. Yin et al. [27] analyse this theoretically for sensor-cluster arrangements.</li>
+</ol>
+
+<h3>3.3 From timing error to a covariance matrix (the key derivation)</h3>
+<p>Collect the unknowns as <b>θ</b> = (<b>x</b>, <i>t</i><sub>0</sub>). Linearizing (3.1) at the solution gives the <b>Jacobian</b> <b>J</b>, an <i>N</i>×4 matrix whose row <i>i</i> is</p>
+<div class="eq"><b>J</b><sub><i>i</i></sub> = [ (<b>x</b> − <b>s</b><sub><i>i</i></sub>)<sup>T</sup> / (<i>v</i> ‖<b>x</b> − <b>s</b><sub><i>i</i></sub>‖) ,&nbsp; 1 ] <span class="n">(3.2)</span></div>
+<p>The first three entries are the unit vector from sensor <i>i</i> to the source, divided by <i>v</i>. If the timing errors are independent with standard deviation σ<sub>t</sub>, the standard least-squares result is</p>
+<div class="eq">Cov(<b>θ̂</b>) ≈ σ<sub>t</sub><sup>2</sup> (<b>J</b><sup>T</sup><b>J</b>)<sup>−1</sup>,&nbsp;&nbsp;&nbsp; <b>Σ</b><sub><i>k</i></sub> = upper-left 3×3 block for event <i>k</i> <span class="n">(3.3)</span></div>
+<p><b>Σ</b><sub><i>k</i></sub> is the <b>per-event localization covariance</b>. Geometrically it is an error ellipsoid: its axes point in the directions of largest and smallest uncertainty, and its semi-axis lengths are proportional to the square roots of the eigenvalues. Equation (3.3) makes the role of sensor geometry clear. When all the unit vectors from the sensors to the source point roughly the same way (source outside the array), the columns of <b>J</b> become nearly dependent, <b>J</b><sup>T</sup><b>J</b> is nearly singular, and the ellipsoid becomes long and thin. In satellite navigation this effect is called "geometric dilution of precision" (GDOP).</p>
+
+<figure>
+<svg viewBox="0 0 640 230" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <rect x="120" y="40" width="260" height="160" fill="#f5f8fa" stroke="#8aa0b2" stroke-dasharray="4 3"/>
+  <text x="125" y="34" font-size="10" fill="#555">sensor array footprint</text>
+  <g fill="#1f5f8b"><rect x="114" y="34" width="12" height="12"/><rect x="374" y="34" width="12" height="12"/><rect x="114" y="194" width="12" height="12"/><rect x="374" y="194" width="12" height="12"/></g>
+  <ellipse cx="250" cy="120" rx="8" ry="7" fill="#1f5f8b" fill-opacity=".25" stroke="#1f5f8b"/><circle cx="250" cy="120" r="2" fill="#1f5f8b"/>
+  <text x="262" y="124" font-size="10">inside: small, round</text>
+  <ellipse cx="340" cy="75" rx="16" ry="9" transform="rotate(30 340 75)" fill="#1f5f8b" fill-opacity=".2" stroke="#1f5f8b"/><circle cx="340" cy="75" r="2" fill="#1f5f8b"/>
+  <ellipse cx="500" cy="120" rx="70" ry="10" fill="#b0552a" fill-opacity=".18" stroke="#b0552a"/><circle cx="500" cy="120" r="2" fill="#b0552a"/>
+  <text x="440" y="150" font-size="10" fill="#b0552a">outside: large, elongated</text>
+  <text x="440" y="163" font-size="10" fill="#b0552a">along the sensor-to-source direction</text>
+  <ellipse cx="60" cy="170" rx="10" ry="40" fill="#b0552a" fill-opacity=".18" stroke="#b0552a"/><circle cx="60" cy="170" r="2" fill="#b0552a"/>
+</svg>
+<figcaption>Figure 2. Schematic of how localization error ellipses depend on the source position relative to the sensor array (illustrative, not computed). Ellipse sizes differ greatly between events in the same test, and this is the information plain Euclidean DBSCAN throws away.</figcaption>
+</figure>
+
+<h3>3.4 Bayesian and data-driven localization</h3>
+<p>Equation (3.3) is a first-order (linearized) approximation. A more complete approach treats location as <b>Bayesian inference</b>: combine a likelihood from the arrival times, with uncertain wave speed and picking error treated as random variables, with a prior, and obtain a full <b>posterior distribution</b> of the source location. Schumacher, Straub and Higgins [25] introduced this for AE, and Madarshahian, Ziehl and Caicedo [26] extended it to handle onset-time uncertainty explicitly. Hensman et al. [24] used Gaussian processes to learn arrival-time maps in complex geometries, which also gives predictive uncertainty. Any of these can supply the per-event <b>Σ</b><sub><i>k</i></sub> that UA-DBSCAN needs. A Bayesian posterior can even supply a non-Gaussian location distribution.</p>
+
+<div class="box"><b class="t">Take-away for your research</b>
+UA-DBSCAN assumes that every event comes with an uncertainty estimate. Decide early how you will get it: (a) linearized covariance (3.3), cheap and standard; (b) Bayesian posterior [25, 26], richer but costly; or (c) empirical, from pencil-lead-break (Hsu–Nielsen) tests at known positions. Whichever you choose becomes part of your method section.</div>
+
+<!-- ============================================================ -->
+<h2>4. Clustering: the basic idea and the main families</h2>
+
+<p><b>Clustering</b> means grouping objects so that objects in the same group are more similar to each other than to objects in other groups, without any labels telling you the right answer. That makes it <i>unsupervised</i> learning. Everything depends on (1) how you measure similarity (the <b>distance</b>) and (2) what you mean by a "group" (the <b>cluster model</b>).</p>
+
+<table>
+<tr><th>Family</th><th>Example</th><th>Cluster model</th><th>Good for AE locations?</th></tr>
+<tr><td>Partitioning</td><td>k-means, k-medoids</td><td>k compact, roughly spherical blobs around centres</td><td>Poor: needs k in advance, dislikes elongated crack shapes, forces every event into a cluster</td></tr>
+<tr><td>Model-based</td><td>Gaussian mixture (GMM)</td><td>Mixture of ellipsoidal Gaussians</td><td>Moderate: handles ellipses, but still needs k and has no natural noise class</td></tr>
+<tr><td>Hierarchical</td><td>Single / average linkage</td><td>Nested tree (dendrogram) cut at some level</td><td>Useful for multi-scale structure; the cut level has the same problem as ε</td></tr>
+<tr><td><b>Density-based</b></td><td><b>DBSCAN</b>, OPTICS, HDBSCAN</td><td>Dense regions separated by sparse regions</td><td><b>Good</b>: arbitrary shapes, unknown number of clusters, explicit noise</td></tr>
+</table>
+
+<p>In the AE literature, most clustering work has been done in <b>feature space</b> (amplitude, frequency, RA and so on) to separate damage <i>mechanisms</i>, such as matrix cracking versus fibre breakage, usually with k-means or similar [28, 29, 32]. Your topic is different: it clusters in <b>location–time space</b> to identify damage <i>zones</i>. The two are complementary, and many strong papers combine them.</p>
+
+<!-- ============================================================ -->
+<h2>5. DBSCAN in detail</h2>
+
+<p>DBSCAN was introduced by Ester, Kriegel, Sander and Xu in 1996 [1]. It is one of the most cited data-mining algorithms. It has only two parameters:</p>
+<ul>
+<li><b>ε (eps)</b>: the neighbourhood radius.</li>
+<li><b>MinPts</b> (called <code>min_samples</code> in scikit-learn): the minimum number of points, including the point itself, that must lie within ε for a region to count as dense.</li>
+</ul>
+
+<h3>5.1 Definitions</h3>
+<ul>
+<li><b>ε-neighbourhood</b> of point <i>p</i>: N<sub>ε</sub>(<i>p</i>) = { <i>q</i> : dist(<i>p</i>, <i>q</i>) ≤ ε }.</li>
+<li><b>Core point</b>: |N<sub>ε</sub>(<i>p</i>)| ≥ MinPts.</li>
+<li><b>Directly density-reachable</b>: <i>q</i> is directly reachable from <i>p</i> if <i>p</i> is a core point and <i>q</i> ∈ N<sub>ε</sub>(<i>p</i>).</li>
+<li><b>Density-reachable</b>: there is a chain <i>p</i> → … → <i>q</i> of direct reachability steps. Every point in the chain except possibly the last must be a core point.</li>
+<li><b>Density-connected</b>: <i>p</i> and <i>q</i> are both density-reachable from some core point <i>o</i>.</li>
+<li><b>Cluster</b>: a maximal set of density-connected points.</li>
+<li><b>Border point</b>: a non-core point inside some core point's neighbourhood. It belongs to a cluster but does not extend it.</li>
+<li><b>Noise</b>: any point that is neither core nor border.</li>
+</ul>
+
+<figure>
+<svg viewBox="0 0 640 210" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" stroke="#1f5f8b" stroke-opacity=".45">
+    <circle cx="150" cy="110" r="45"/><circle cx="190" cy="95" r="45"/><circle cx="230" cy="115" r="45"/><circle cx="265" cy="90" r="45"/>
+  </g>
+  <g fill="#1f5f8b"><circle cx="150" cy="110" r="5"/><circle cx="190" cy="95" r="5"/><circle cx="230" cy="115" r="5"/><circle cx="265" cy="90" r="5"/>
+  <circle cx="165" cy="130" r="5"/><circle cx="175" cy="80" r="5"/><circle cx="210" cy="120" r="5"/><circle cx="245" cy="100" r="5"/><circle cx="130" cy="95" r="5"/><circle cx="285" cy="110" r="5"/><circle cx="250" cy="70" r="5"/></g>
+  <circle cx="312" cy="60" r="5" fill="#fff" stroke="#1f5f8b" stroke-width="2"/>
+  <circle cx="420" cy="150" r="5" fill="#b0552a"/><circle cx="470" cy="60" r="5" fill="#b0552a"/>
+  <line x1="265" y1="90" x2="310" y2="90" stroke="#333"/><text x="280" y="86" font-size="10">ε</text>
+  <g font-size="10.5"><circle cx="440" cy="180" r="5" fill="#1f5f8b"/><text x="450" y="184">core point (≥ MinPts in ε-ball)</text>
+  <circle cx="440" cy="196" r="5" fill="#fff" stroke="#1f5f8b" stroke-width="2"/><text x="450" y="200">border point</text>
+  <circle cx="330" cy="196" r="5" fill="#b0552a"/><text x="340" y="200">noise</text></g>
+  <text x="120" y="190" font-size="10.5" fill="#333">One cluster: a chain of overlapping ε-balls of core points</text>
+</svg>
+<figcaption>Figure 3. DBSCAN's three point types (MinPts = 4). A cluster grows by chaining the neighbourhoods of core points, so it can follow a curved crack. Isolated points become noise.</figcaption>
+</figure>
+
+<h3>5.2 The algorithm</h3>
+<pre>for each point p not yet visited:
+    mark p visited
+    N = RangeQuery(p, eps)            # all points within eps of p
+    if |N| &lt; MinPts: label p NOISE (may later become a border point)
+    else:
+        start new cluster C; add p to C
+        seeds = N \ {p}
+        for each q in seeds:
+            if q was NOISE: add q to C (border point)
+            if q not visited:
+                mark q visited
+                Nq = RangeQuery(q, eps)
+                if |Nq| &gt;= MinPts: seeds = seeds ∪ Nq   # q is core: expand
+            if q not in any cluster: add q to C</pre>
+<p>Cost is dominated by the range queries. With a spatial index (k-d tree, R*-tree, cover tree) and a small ε, it is roughly <i>O</i>(<i>n</i> log <i>n</i>) in practice. The worst case is <i>O</i>(<i>n</i><sup>2</sup>). Schubert et al. [5] discuss this in detail and point out that DBSCAN works with <i>any</i> distance function if you give up index acceleration. This matters because your UA distance is not Euclidean.</p>
+
+<h3>5.3 Properties worth memorising</h3>
+<ul>
+<li>Core points and noise points are assigned <b>deterministically</b>. Border points that are within ε of two clusters may be assigned to either, depending on processing order.</li>
+<li>A single global ε means one global density threshold. DBSCAN therefore struggles when clusters have <b>very different densities</b>, such as a highly active main crack next to a slowly growing secondary crack. This is the motivation for OPTICS and HDBSCAN, and for your "multi-scale" idea.</li>
+<li>If ε is too small, almost everything is noise. If ε is too large, everything merges into one cluster. Somewhere in between is a useful range.</li>
+</ul>
+
+<h3>5.4 Classical parameter heuristics</h3>
+<ul>
+<li><b>MinPts</b>: Ester et al. [1] used MinPts = 4 for 2-D data. Sander et al. [2] suggest MinPts = 2 × dimensionality. For location plus time (4-D) that gives about 8. Larger values give smoother, more noise-robust results.</li>
+<li><b>ε by k-distance plot</b>: compute each point's distance to its k-th nearest neighbour (k = MinPts − 1), sort these distances in decreasing order, plot them, and look for a "knee" or "elbow". Points to the right of the knee are in dense regions. This is the heuristic of [1]. Automating the knee detection is a small literature of its own [8, 9].</li>
+<li><b>Red flags</b> (Schubert et al. [5], §4.2): a useful DBSCAN result should typically have a <b>noise fraction between about 1% and 30%</b>. If the <b>largest cluster holds more than 20–50%</b> of the clustered points, ε is probably too large, or a hierarchical method (OPTICS or HDBSCAN) is needed. They also plot the number of clusters against ε. This is the closest published precedent for the ε rule in your definition, so read it carefully.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>6. Relatives of DBSCAN you must know</h2>
+
+<h4>GDBSCAN (Sander et al., 1998) [2]</h4>
+<p>This generalizes DBSCAN: "within ε" can be replaced by <b>any symmetric, reflexive neighbourhood predicate</b>, and "count ≥ MinPts" by any weighted cardinality. That is the theoretical licence for UA-DBSCAN. You can define "neighbour" as "within ε in uncertainty-scaled space–time distance", and all of DBSCAN's cluster definitions still hold.</p>
+
+<h4>ST-DBSCAN (Birant &amp; Kut, 2007) [6]</h4>
+<p>This uses <b>two radii</b>, ε<sub>1</sub> for space and ε<sub>2</sub> for time (or a non-spatial attribute). Two points are neighbours only if both conditions hold. It is the most direct prior art for combining location and time. UA-DBSCAN differs by (a) merging space and time into one scaled distance, and (b) scaling space by per-event uncertainty. You should compare against ST-DBSCAN as a baseline.</p>
+
+<h4>OPTICS (Ankerst et al., 1999) [3]</h4>
+<p>OPTICS does not produce one clustering. It produces an <b>ordering</b> of the points with a <b>reachability distance</b> for each. The resulting <i>reachability plot</i> shows valleys (clusters) at all ε values at once, like a multi-scale picture. A DBSCAN result for any ε can be read off by cutting the plot horizontally.</p>
+
+<h4>HDBSCAN (Campello, Moulavi &amp; Sander, 2013) [4]</h4>
+<p>HDBSCAN builds the full hierarchy of DBSCAN-like clusterings over <b>all</b> density levels, then extracts the clusters that are most <b>stable</b>, meaning they persist over the widest range of density levels. It effectively removes ε and keeps only a minimum cluster size. Your "plateau in the cluster-count curve" is a related, simpler notion of stability. HDBSCAN is therefore both a strong baseline and a conceptual cousin, and you must explain what UA-DBSCAN adds (physically interpretable ε, uncertainty-aware distance, a noise constraint).</p>
+
+<h4>FDBSCAN, density-based clustering of uncertain data (Kriegel &amp; Pfeifle, 2005) [7]</h4>
+<p>FDBSCAN treats each object as a <b>probability distribution</b> rather than a point, and defines a probabilistic ("fuzzy") distance: the probability that two uncertain objects are within ε of each other. It is the closest data-mining ancestor of your idea (i). UA-DBSCAN can be seen as a physically specified version, where the distributions come from sensor geometry and wave physics rather than being given abstractly.</p>
+
+<div class="box good"><b class="t">Where UA-DBSCAN sits</b>
+Plain DBSCAN [1] → a general neighbourhood predicate (GDBSCAN [2]) → adding time (ST-DBSCAN [6]) → adding uncertainty (FDBSCAN [7]; ACLUD in seismology [34]) → multi-density and stability (OPTICS [3], HDBSCAN [4]). UA-DBSCAN combines the time, uncertainty and stability ideas, with every parameter tied to AE physics.</div>
+
+<!-- ============================================================ -->
+<h2>7. Part (i): an uncertainty-scaled space–time distance</h2>
+
+<h3>7.1 Why Euclidean distance is wrong here</h3>
+<p>Take two events 8 mm apart. If each has a location uncertainty of about 1 mm, they are almost certainly different sources. If each is uncertain by 10 mm along the line joining them, they could easily be the same source. Euclidean distance treats both cases identically. The statistically natural fix is the <b>Mahalanobis distance</b>, which measures separation in units of standard deviation along each direction.</p>
+
+<h3>7.2 One concrete form (a starting proposal)</h3>
+<p>Your definition does not fix the formula, so choosing and justifying it is part of your research. A natural first choice for events <i>i</i> and <i>j</i> with estimated locations <b>x̂</b><sub><i>i</i></sub>, <b>x̂</b><sub><i>j</i></sub>, covariances <b>Σ</b><sub><i>i</i></sub>, <b>Σ</b><sub><i>j</i></sub> and times <i>t</i><sub><i>i</i></sub>, <i>t</i><sub><i>j</i></sub> is:</p>
+<div class="eq"><i>d</i><sub><i>ij</i></sub><sup>2</sup> = (<b>x̂</b><sub><i>i</i></sub> − <b>x̂</b><sub><i>j</i></sub>)<sup>T</sup> (<b>Σ</b><sub><i>i</i></sub> + <b>Σ</b><sub><i>j</i></sub>)<sup>−1</sup> (<b>x̂</b><sub><i>i</i></sub> − <b>x̂</b><sub><i>j</i></sub>) + ( (<i>t</i><sub><i>i</i></sub> − <i>t</i><sub><i>j</i></sub>) / τ )<sup>2</sup> <span class="n">(7.1)</span></div>
+<ul>
+<li><b>Spatial term</b>: if both events came from the <i>same</i> true point and their location errors are independent and Gaussian, then <b>x̂</b><sub><i>i</i></sub> − <b>x̂</b><sub><i>j</i></sub> ~ N(0, <b>Σ</b><sub><i>i</i></sub> + <b>Σ</b><sub><i>j</i></sub>), and the spatial term follows a <b>χ²-distribution with 3 degrees of freedom</b> (2 in 2-D).</li>
+<li><b>Temporal term</b>: τ is a time scale that says how far apart in time two events can be and still count as the same activity. It could be tied to the loading rate, a load step, or a characteristic event rate.</li>
+<li>The result is <b>dimensionless</b>, so ε is a number of standard deviations rather than millimetres. This is what makes the ε-rule physics-informed.</li>
+</ul>
+
+<div class="box"><b class="t">A useful consequence (idea to develop)</b>
+Because the spatial term is χ²<sub>3</sub>-distributed under the "same source" hypothesis, the 95% quantile χ²<sub>3, 0.95</sub> ≈ 7.81 suggests ε<sub>space</sub> ≈ √7.81 ≈ 2.8 as a physically motivated reference value. You can then check whether the plateau rule of part (ii) lands near it. Agreement would be strong evidence for the method; disagreement would reveal model error, such as underestimated Σ.</div>
+
+<h3>7.3 Alternatives you should compare</h3>
+<ul>
+<li><b>Bhattacharyya or Hellinger distance</b> between the two Gaussian location distributions. These include a term that penalises very different covariances.</li>
+<li><b>Probability of proximity</b>: P(‖<b>X</b><sub><i>i</i></sub> − <b>X</b><sub><i>j</i></sub>‖ ≤ <i>r</i>), where <b>X</b><sub><i>i</i></sub> and <b>X</b><sub><i>j</i></sub> are the random true positions of events <i>i</i> and <i>j</i> (their uncertain locations) and <i>r</i> is a physical radius. This is the FDBSCAN style [7].</li>
+<li><b>Space–time nearest-neighbour proximity</b> from seismology (Zaliapin &amp; Ben-Zion [33]), which combines distance, time and magnitude. It has been applied to lab AE by Matochkina et al. [35].</li>
+<li><b>Separate thresholds</b> (ST-DBSCAN [6]) instead of one combined distance.</li>
+</ul>
+
+<h3>7.4 Important technical caveats</h3>
+<ul>
+<li>Formula (7.1) with pair-dependent <b>Σ</b><sub><i>i</i></sub> + <b>Σ</b><sub><i>j</i></sub> is <b>not a true metric</b>: the triangle inequality can fail. DBSCAN (via GDBSCAN) still works because it only needs symmetry, but tree indexes that assume a metric cannot be used blindly. A safe speed-up is a <b>Euclidean pre-filter</b>: if <i>d</i><sub><i>ij</i></sub> ≤ ε then ‖<b>x̂</b><sub><i>i</i></sub> − <b>x̂</b><sub><i>j</i></sub>‖ ≤ ε·√λ<sub>max</sub>(<b>Σ</b><sub><i>i</i></sub> + <b>Σ</b><sub><i>j</i></sub>). So first find Euclidean candidates within that radius, using the largest λ<sub>max</sub> in the dataset, then compute the exact distance only for those pairs.</li>
+<li><b>The large-uncertainty trap.</b> A very poorly located event has a huge Σ, so its Mahalanobis distance to <i>everything</i> is small. It then becomes a neighbour of many events and may even become a core point that bridges two separate cracks. You need a rule for this: reject events with det Σ or λ<sub>max</sub> above a threshold, assign them to a separate "unlocatable" class, or use a distance that penalises large covariance (Bhattacharyya). This is a genuine research question, and a place where your work can contribute.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>8. Part (ii): choosing ε from a plateau in the cluster-count curve</h2>
+
+<h3>8.1 The idea</h3>
+<p>Run DBSCAN for a sequence of ε values, usually on a logarithmic grid. For each, record the <b>number of clusters</b> <i>K</i>(ε) and the <b>noise fraction</b> η(ε), the share of events labelled noise.</p>
+<ul>
+<li>η(ε) decreases (weakly) monotonically as ε grows: more neighbours means fewer isolated points.</li>
+<li><i>K</i>(ε) is <b>not monotone</b>. At tiny ε there are almost no clusters because everything is noise. <i>K</i> rises as small groups form, then falls as groups merge, and finally reaches 1 when everything is one cluster.</li>
+<li>A <b>plateau</b> is a range of ε over which <i>K</i> does not change. A wide plateau means the partition is <b>stable</b>: the grouping does not depend on the exact ε you pick, which suggests it reflects real structure. This is the same intuition as clustering stability [10] and HDBSCAN's cluster stability [4].</li>
+<li>The <b>noise-fraction constraint</b> η<sub>min</sub> ≤ η(ε) ≤ η<sub>max</sub> rules out degenerate plateaus, such as the trivial "everything is noise" or "one giant cluster" regimes. Schubert et al.'s 1–30% band [5] is a starting point. The physically right band for AE is something you can study.</li>
+</ul>
+
+<figure>
+<svg viewBox="0 0 640 230" width="100%" xmlns="http://www.w3.org/2000/svg">
+  <line x1="60" y1="190" x2="600" y2="190" stroke="#333"/><line x1="60" y1="190" x2="60" y2="20" stroke="#333"/>
+  <text x="300" y="220" font-size="11">ε (log scale)</text>
+  <text x="14" y="100" font-size="11" transform="rotate(-90 14 100)">K(ε)</text>
+  <rect x="300" y="20" width="140" height="170" fill="#3d7a46" fill-opacity=".10"/>
+  <text x="318" y="34" font-size="10" fill="#3d7a46">selected plateau</text>
+  <rect x="60" y="20" width="120" height="170" fill="#b0552a" fill-opacity=".07"/>
+  <text x="66" y="110" font-size="10" fill="#b0552a">η &gt; η_max</text>
+  <rect x="510" y="20" width="90" height="170" fill="#b0552a" fill-opacity=".07"/>
+  <text x="515" y="34" font-size="10" fill="#b0552a">η &lt; η_min</text>
+  <polyline fill="none" stroke="#1f5f8b" stroke-width="2.5" points="60,185 100,180 140,120 170,70 200,75 220,95 240,110 270,110 300,135 440,135 460,160 510,160 540,175 600,178"/>
+  <polyline fill="none" stroke="#b0552a" stroke-width="2" stroke-dasharray="6 4" points="60,25 120,35 180,70 240,110 300,140 380,158 440,165 510,176 600,186"/>
+  <text x="330" y="176" font-size="10" fill="#b0552a">η(ε), noise fraction</text>
+  <text x="232" y="90" font-size="10" fill="#1f5f8b">K(ε)</text>
+</svg>
+<figcaption>Figure 4. Schematic of the ε-selection rule (illustrative shape, not real data). The solid line is the number of clusters and the dashed line the noise fraction. Among ε values that satisfy the noise constraint, pick the widest plateau of K(ε), typically its middle (geometric mean).</figcaption>
+</figure>
+
+<h3>8.2 A precise version you can implement</h3>
+<ol>
+<li>Choose a grid ε<sub>1</sub> &lt; ε<sub>2</sub> &lt; … &lt; ε<sub>M</sub> (for example 60 values, log-spaced from 0.3 to 30 in UA units).</li>
+<li>For each ε<sub>m</sub>, run DBSCAN and store the labels, <i>K</i><sub>m</sub> and η<sub>m</sub>.</li>
+<li>Keep only the indices with η<sub>min</sub> ≤ η<sub>m</sub> ≤ η<sub>max</sub>.</li>
+<li>Find the runs of consecutive admissible indices with the same <i>K</i>. Measure each run's width as log(ε<sub>end</sub> / ε<sub>start</sub>).</li>
+<li>Choose the widest run, and set ε* to the geometric mean of its endpoints.</li>
+<li>Report the second-widest plateau as well. If it is comparably wide, the data have structure at <b>two scales</b> (Section 10).</li>
+</ol>
+
+<div class="box warn"><b class="t">Weakness to fix: equal counts do not mean equal clusters</b>
+<i>K</i> can stay constant while the actual membership changes (one cluster splits while two others merge). A stronger plateau criterion is that the <b>Adjusted Rand Index</b> [13] between partitions at neighbouring ε values stays close to 1. Consider proposing "partition-stability plateaus" rather than "count plateaus". This is a clean, defensible methodological improvement.</div>
+
+<!-- ============================================================ -->
+<h2>9. Part (iii): noise as an explicit "isolated, benign activity" class</h2>
+
+<p>Most DBSCAN applications throw noise points away. Your definition instead gives them meaning: events that are not density-connected to any damage cluster, given their uncertainty, represent <b>isolated, benign activity</b>. Examples are friction at loading points, sporadic micro-cracking that does not coalesce, and settling. Reporting this class matters for structural health monitoring. An operator wants to know that "200 events occurred, of which 170 are isolated and harmless", not just to see those 170 silently dropped.</p>
+
+<h3>9.1 How to justify "benign" (you must not simply assume it)</h3>
+<ul>
+<li><b>Waveform features</b>: compare noise and cluster events on RA, AF, amplitude, energy and b-value [17–20]. If noise events are systematically lower in energy or amplitude and do not show the progressive b-value drop seen in clusters, that supports "benign".</li>
+<li><b>Temporal behaviour</b>: benign activity should be roughly stationary (Poisson-like) in time, while active cracks accelerate.</li>
+<li><b>Ground truth</b>: after a lab test, compare with the visible crack pattern, digital image correlation (DIC), or CT scans. Noise events should not lie on final crack paths.</li>
+</ul>
+
+<h3>9.2 Things that can land in the noise class but are not benign</h3>
+<ul>
+<li><b>The first few events of a new crack</b>: before MinPts events have accumulated, a nascent crack looks isolated. A temporal (streaming) analysis can show events migrating from noise into a cluster. That is interesting in itself as an early-warning indicator.</li>
+<li><b>Badly located events</b>, if you exclude them via a Σ threshold (Section 7.4). Keep them in a separate "unlocatable" class, not in "benign".</li>
+<li><b>Electrical or mechanical noise</b> that passed the event-definition filters.</li>
+</ul>
+<p>A careful paper would therefore present <b>four labels</b>: damage clusters, isolated benign, unlocatable (large Σ), and optionally transitional (noise events that later join a cluster).</p>
+
+<!-- ============================================================ -->
+<h2>10. What "physics-informed" and "multi-scale" mean here</h2>
+
+<p><b>Physics-informed</b> here does not mean physics-informed neural networks (PINNs). It means that the clustering's ingredients are derived from the physics of the measurement rather than tuned by hand:</p>
+<ul>
+<li>Σ<sub><i>k</i></sub> comes from wave-propagation and arrival-time physics (Equation 3.3 or a Bayesian posterior).</li>
+<li>ε has a statistical and physical meaning (a number of standard errors, with a χ² reference).</li>
+<li>τ can be tied to the loading protocol or the damage-process time scale.</li>
+<li>MinPts can be tied to the minimum number of events that engineers accept as evidence of an active source.</li>
+</ul>
+
+<p><b>Multi-scale</b> refers to damage organising at several scales. Diffuse micro-cracking forms broad, low-density zones, while a localized macro-crack forms a dense, narrow band. A single ε sees only one scale. Three ways to make the method multi-scale:</p>
+<ol>
+<li><b>Multiple plateaus</b>: if the cluster-count curve has two wide plateaus, report both partitions as fine-scale and coarse-scale damage structure.</li>
+<li><b>Hierarchical relation</b>: show that fine-scale clusters nest inside coarse-scale ones. This is essentially what OPTICS and HDBSCAN produce, so compare against them.</li>
+<li><b>Multi-scale in time</b>: sweep τ as well as ε, to separate short bursts (crack jumps) from slow persistent activity.</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2>11. How to evaluate UA-DBSCAN</h2>
+
+<h3>11.1 Synthetic benchmark (essential, because it gives ground truth)</h3>
+<ol>
+<li>Define a specimen geometry and a sensor layout.</li>
+<li>Place true damage sources, for example points along 2–3 crack lines or planes with different activity rates, and add spatially uniform "benign" background events.</li>
+<li>For each true source, compute exact arrival times using Equation (3.1), add picking noise (σ<sub>t</sub>) and wave-speed error, and re-locate the event with your solver. This gives realistic <b>x̂</b> and Σ, including the geometry effects in Figure 2.</li>
+<li>Cluster the result with plain DBSCAN (k-distance ε), ST-DBSCAN, OPTICS, HDBSCAN and UA-DBSCAN.</li>
+<li>Score against the truth (below). Repeat for different σ<sub>t</sub>, sensor layouts and background levels. This sensitivity study is often the most convincing part of a methods paper.</li>
+</ol>
+
+<h3>11.2 Metrics</h3>
+<table>
+<tr><th>Metric</th><th>Needs ground truth?</th><th>Use</th></tr>
+<tr><td>Adjusted Rand Index (ARI) [13]</td><td>Yes</td><td>Agreement between the found and true partitions, corrected for chance. 1 = perfect.</td></tr>
+<tr><td>Noise precision and recall</td><td>Yes</td><td>How well the noise class captures the true benign events.</td></tr>
+<tr><td>DBCV (Density-Based Clustering Validation) [11]</td><td>No</td><td>Internal validity index designed for density-based, arbitrarily shaped clusters.</td></tr>
+<tr><td>Silhouette [12]</td><td>No</td><td>Classic internal index. It favours compact, convex clusters, so it is less suitable for crack shapes. Report it but interpret with care.</td></tr>
+<tr><td>Plateau width and partition stability [10]</td><td>No</td><td>Direct measure of how robust the chosen ε is.</td></tr>
+</table>
+
+<h3>11.3 Real data</h3>
+<p>Typical experiments are three- or four-point bending of concrete or reinforced concrete beams, compact-tension specimens, composite coupons, or rock cores under compression [16, 21, 30]. Compare clusters with final crack maps, DIC strain fields or CT. Pencil-lead breaks (Hsu–Nielsen sources) at known positions give a controlled way to measure real localization error.</p>
+
+<!-- ============================================================ -->
+<h2>12. A practical starting implementation (Python sketch)</h2>
+<p>This is a minimal, readable sketch to get started. It is not optimized and not a finished method. It uses NumPy and scikit-learn's DBSCAN with a precomputed distance matrix, which is fine up to a few thousand events. For larger catalogues, switch to a sparse matrix built with the Euclidean pre-filter from Section 7.4.</p>
+<pre>import numpy as np
+from sklearn.cluster import DBSCAN
+
+def ua_distance_matrix(X, S, t, tau):
+    """X: (n,3) locations, S: (n,3,3) covariances, t: (n,) times, tau: time scale."""
+    n = len(X)
+    D = np.zeros((n, n))
+    for i in range(n):
+        dx = X[i] - X[i+1:]                      # (m,3)
+        C = S[i] + S[i+1:]                       # (m,3,3) pairwise summed covariance
+        sol = np.linalg.solve(C, dx[..., None])[..., 0]
+        d2 = np.einsum('mk,mk->m', dx, sol) + ((t[i] - t[i+1:]) / tau) ** 2
+        D[i, i+1:] = D[i+1:, i] = np.sqrt(d2)
+    return D
+
+def epsilon_sweep(D, min_pts, eps_grid):
+    out = []
+    for eps in eps_grid:
+        lab = DBSCAN(eps=eps, min_samples=min_pts, metric="precomputed").fit_predict(D)
+        K = len(set(lab)) - (1 if -1 in lab else 0)
+        eta = np.mean(lab == -1)
+        out.append((eps, K, eta, lab))
+    return out
+
+def pick_plateau(sweep, eta_min=0.01, eta_max=0.30):
+    best, run = None, []
+    for eps, K, eta, lab in sweep + [(None, None, None, None)]:
+        ok = eta is not None and eta_min &lt;= eta &lt;= eta_max and K &gt; 0
+        if ok and (not run or run[-1][1] == K):
+            run.append((eps, K)); continue
+        if run:
+            width = np.log(run[-1][0] / run[0][0])
+            if best is None or width &gt; best[0]:
+                best = (width, run[0][0], run[-1][0], run[0][1])
+        run = [(eps, K)] if ok else []
+    if best is None: return None
+    width, e0, e1, K = best
+    return dict(eps=np.sqrt(e0 * e1), K=K, plateau=(e0, e1), log_width=width)
+
+# D   = ua_distance_matrix(X, S, t, tau=...)
+# sw  = epsilon_sweep(D, min_pts=8, eps_grid=np.geomspace(0.3, 30, 60))
+# sel = pick_plateau(sw)</pre>
+<p class="small">Libraries worth knowing: <b>scikit-learn</b> (DBSCAN, OPTICS, HDBSCAN in recent versions), the <b>hdbscan</b> package, <b>ELKI</b> (Java; the reference implementation used by Schubert et al. [5]), and MATLAB's <code>dbscan</code>.</p>
+
+<!-- ============================================================ -->
+<h2>13. Open questions and pitfalls: where your contribution can be</h2>
+<p>These are proposals for you to evaluate, not established results. Check the literature again before claiming novelty, since the field moves quickly.</p>
+<table>
+<tr><th style="width:28%">Question</th><th>Why it matters</th><th style="width:30%">How to test</th></tr>
+<tr><td>Does the plateau-selected ε agree with the χ² reference (≈2.8 in 3-D)?</td><td>Agreement would show that ε is physically meaningful rather than empirical.</td><td>Synthetic data with known Σ; then real data with Σ from pencil-lead calibration.</td></tr>
+<tr><td>Is uncertainty scaling better than Euclidean distance when sensor geometry is poor?</td><td>This is the central claim of part (i).</td><td>ARI versus distance-to-array-centroid, for plain DBSCAN versus UA-DBSCAN.</td></tr>
+<tr><td>How should large-Σ events be handled?</td><td>Mahalanobis scaling makes them "close to everything" (Section 7.4).</td><td>Compare gating, Bhattacharyya distance, and an "unlocatable" class.</td></tr>
+<tr><td>Count plateau or partition-stability plateau?</td><td>Equal counts can hide different partitions.</td><td>ARI between neighbouring ε values; compare selection accuracy.</td></tr>
+<tr><td>How should τ be chosen?</td><td>Time scaling is as ad hoc as ε unless it is tied to physics.</td><td>Tie τ to loading rate or event rate; sweep jointly with ε.</td></tr>
+<tr><td>Is the noise class really benign?</td><td>This is the central claim of part (iii).</td><td>Feature statistics (RA/AF, energy, b-value) and ground-truth crack maps.</td></tr>
+<tr><td>How does UA-DBSCAN compare with HDBSCAN, and with ACLUD from seismology [34]?</td><td>Reviewers will ask. ACLUD already uses location uncertainty to cluster earthquakes.</td><td>Include both as baselines, or explain clearly why ACLUD's goal (fitting fault planes) differs.</td></tr>
+<tr><td>Can it run online?</td><td>Monitoring needs incremental updates, and the moment an event joins a cluster is an early-warning signal.</td><td>A streaming DBSCAN variant; measure detection latency.</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>14. A suggested first-semester roadmap</h2>
+<ol>
+<li><b>Weeks 1–2: read the core papers</b> in this order: [1], [5], [6], [4], [7], [23], [25], [15], [34]. Use the companion literature review for summaries.</li>
+<li><b>Weeks 3–4: build the simulator.</b> Write the arrival-time forward model (3.1), a Geiger-style locator, and the covariance (3.3). Reproduce the pattern in Figure 2 with real numbers for your sensor layout.</li>
+<li><b>Weeks 5–6: baselines.</b> Run plain DBSCAN (k-distance ε), ST-DBSCAN and HDBSCAN on synthetic catalogues, with ARI and noise precision/recall.</li>
+<li><b>Weeks 7–8: UA-DBSCAN version 1.</b> Implement distance (7.1) and the plateau rule, then compare.</li>
+<li><b>Weeks 9–10: robustness.</b> Vary σ<sub>t</sub>, sensor layout, background rate and cluster density ratio; handle large-Σ events.</li>
+<li><b>Weeks 11–12: real data.</b> Obtain a lab AE dataset (your own test, a collaborator's, or a published one) with a known crack pattern, and validate the noise class with waveform features.</li>
+<li><b>Weeks 13–14: write-up.</b> Draft the methods section and figures. Discuss the target venue with your supervisor; typical options are Mechanical Systems and Signal Processing, Ultrasonics, NDT &amp; E International, Structural Health Monitoring, and the Journal of Nondestructive Evaluation.</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2>15. Glossary</h2>
+<table>
+<tr><th style="width:26%">Term</th><th>Meaning</th></tr>
+<tr><td>Acoustic emission (AE)</td><td>Transient elastic waves generated by rapid energy release in a material, and the monitoring method based on detecting them.</td></tr>
+<tr><td>Hit / Event</td><td>Hit: one sensor's detection. Event: one physical source, seen as hits on several sensors.</td></tr>
+<tr><td>Threshold</td><td>Voltage level (in dB) a signal must exceed to be recorded.</td></tr>
+<tr><td>Onset picking</td><td>Estimating the arrival time of the first wave; AIC is a common automatic method.</td></tr>
+<tr><td>TDOA</td><td>Time difference of arrival, the basis of source location.</td></tr>
+<tr><td>Geiger's method</td><td>Iterative linearized least-squares solver for source location.</td></tr>
+<tr><td>Covariance matrix Σ</td><td>Describes the size, shape and orientation of the location uncertainty (error ellipsoid).</td></tr>
+<tr><td>Mahalanobis distance</td><td>Distance measured in standard-deviation units using a covariance matrix.</td></tr>
+<tr><td>χ² distribution</td><td>Distribution of a sum of squared standard normal variables; used to set statistically meaningful thresholds.</td></tr>
+<tr><td>DBSCAN</td><td>Density-based clustering with a radius ε and a minimum count MinPts; labels core, border and noise points.</td></tr>
+<tr><td>k-distance plot</td><td>Sorted distances to the k-th nearest neighbour; the "knee" suggests ε.</td></tr>
+<tr><td>OPTICS / HDBSCAN</td><td>Density-based methods that consider all ε values at once (ordering / hierarchy).</td></tr>
+<tr><td>ST-DBSCAN</td><td>DBSCAN with separate spatial and temporal radii.</td></tr>
+<tr><td>Plateau</td><td>A range of ε over which the clustering result (cluster count) does not change.</td></tr>
+<tr><td>Noise fraction η</td><td>Share of events that DBSCAN labels as noise.</td></tr>
+<tr><td>ARI</td><td>Adjusted Rand Index; chance-corrected agreement between two partitions.</td></tr>
+<tr><td>DBCV</td><td>Density-Based Clustering Validation; an internal quality index for density-based clusters.</td></tr>
+<tr><td>RA / AF</td><td>Rise time / amplitude, and counts / duration; used to classify tensile versus shear cracking.</td></tr>
+<tr><td>b-value</td><td>Slope of the amplitude distribution; it drops as damage localizes.</td></tr>
+<tr><td>Kaiser effect</td><td>Absence of AE on reloading below the previous maximum load.</td></tr>
+<tr><td>Hsu–Nielsen source</td><td>Pencil-lead break used as a repeatable artificial AE source for calibration.</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 class="pb">16. References</h2>
+<p class="small">These are the same numbered references as in the companion literature review, where each has a detailed summary. All were checked against Crossref or the publisher record in September 2026.</p>
+<ol class="small" style="font-size:9pt;color:#222">
+<li>Ester, M., Kriegel, H.-P., Sander, J., &amp; Xu, X. (1996). A density-based algorithm for discovering clusters in large spatial databases with noise. <i>Proc. 2nd Int. Conf. on Knowledge Discovery and Data Mining (KDD-96)</i>, 226–231. AAAI Press.</li>
+<li>Sander, J., Ester, M., Kriegel, H.-P., &amp; Xu, X. (1998). Density-based clustering in spatial databases: The algorithm GDBSCAN and its applications. <i>Data Mining and Knowledge Discovery</i>, 2(2), 169–194. https://doi.org/10.1023/A:1009745219419</li>
+<li>Ankerst, M., Breunig, M. M., Kriegel, H.-P., &amp; Sander, J. (1999). OPTICS: Ordering points to identify the clustering structure. <i>ACM SIGMOD Record</i>, 28(2), 49–60. https://doi.org/10.1145/304181.304187</li>
+<li>Campello, R. J. G. B., Moulavi, D., &amp; Sander, J. (2013). Density-based clustering based on hierarchical density estimates. <i>PAKDD 2013, LNCS 7819</i>, 160–172. https://doi.org/10.1007/978-3-642-37456-2_14</li>
+<li>Schubert, E., Sander, J., Ester, M., Kriegel, H.-P., &amp; Xu, X. (2017). DBSCAN revisited, revisited: Why and how you should (still) use DBSCAN. <i>ACM Transactions on Database Systems</i>, 42(3), Art. 19. https://doi.org/10.1145/3068335</li>
+<li>Birant, D., &amp; Kut, A. (2007). ST-DBSCAN: An algorithm for clustering spatial–temporal data. <i>Data &amp; Knowledge Engineering</i>, 60(1), 208–221. https://doi.org/10.1016/j.datak.2006.01.013</li>
+<li>Kriegel, H.-P., &amp; Pfeifle, M. (2005). Density-based clustering of uncertain data. <i>Proc. 11th ACM SIGKDD</i>, 672–677. https://doi.org/10.1145/1081870.1081955</li>
+<li>Rahmah, N., &amp; Sitanggang, I. S. (2016). Determination of optimal epsilon (Eps) value on DBSCAN algorithm to clustering data on peatland hotspots in Sumatra. <i>IOP Conf. Ser.: Earth Environ. Sci.</i>, 31, 012012. https://doi.org/10.1088/1755-1315/31/1/012012</li>
+<li>Starczewski, A., Goetzen, P., &amp; Er, M. J. (2020). A new method for automatic determining of the DBSCAN parameters. <i>J. Artificial Intelligence and Soft Computing Research</i>, 10(3), 209–221. https://doi.org/10.2478/jaiscr-2020-0014</li>
+<li>von Luxburg, U. (2010). Clustering stability: An overview. <i>Foundations and Trends in Machine Learning</i>, 2(3), 235–274. https://doi.org/10.1561/2200000008</li>
+<li>Moulavi, D., Jaskowiak, P. A., Campello, R. J. G. B., Zimek, A., &amp; Sander, J. (2014). Density-based clustering validation. <i>Proc. 2014 SIAM Int. Conf. on Data Mining</i>, 839–847. https://doi.org/10.1137/1.9781611973440.96</li>
+<li>Rousseeuw, P. J. (1987). Silhouettes: A graphical aid to the interpretation and validation of cluster analysis. <i>J. Computational and Applied Mathematics</i>, 20, 53–65. https://doi.org/10.1016/0377-0427(87)90125-7</li>
+<li>Hubert, L., &amp; Arabie, P. (1985). Comparing partitions. <i>Journal of Classification</i>, 2(1), 193–218. https://doi.org/10.1007/BF01908075</li>
+<li>Grosse, C. U., &amp; Ohtsu, M. (Eds.) (2008). <i>Acoustic Emission Testing</i>. Springer. https://doi.org/10.1007/978-3-540-69972-9</li>
+<li>Ono, K. (2018). Review on structural health evaluation with acoustic emission. <i>Applied Sciences</i>, 8(6), 958. https://doi.org/10.3390/app8060958</li>
+<li>Lockner, D. (1993). The role of acoustic emission in the study of rock fracture. <i>Int. J. Rock Mech. Min. Sci. &amp; Geomech. Abstr.</i>, 30(7), 883–899. https://doi.org/10.1016/0148-9062(93)90041-B</li>
+<li>Ohtsu, M. (2010). Recommendation of RILEM TC 212-ACD: Acoustic emission and related NDE techniques for crack detection and damage evaluation in concrete. Test method for classification of active cracks in concrete structures by acoustic emission. <i>Materials and Structures</i>, 43(9), 1187–1189. https://doi.org/10.1617/s11527-010-9640-6</li>
+<li>Ohno, K., &amp; Ohtsu, M. (2010). Crack classification in concrete based on acoustic emission. <i>Construction and Building Materials</i>, 24(12), 2339–2346. https://doi.org/10.1016/j.conbuildmat.2010.05.004</li>
+<li>Aggelis, D. G. (2011). Classification of cracking mode in concrete by acoustic emission parameters. <i>Mechanics Research Communications</i>, 38(3), 153–157. https://doi.org/10.1016/j.mechrescom.2011.03.007</li>
+<li>Colombo, S., Main, I. G., &amp; Forde, M. C. (2003). Assessing damage of reinforced concrete beam using "b-value" analysis of acoustic emission signals. <i>J. Materials in Civil Engineering</i>, 15(3), 280–286. https://doi.org/10.1061/(ASCE)0899-1561(2003)15:3(280)</li>
+<li>Grosse, C. U., Reinhardt, H. W., &amp; Dahm, T. (1997). Localization and classification of fracture types in concrete with quantitative acoustic emission measurement techniques. <i>NDT &amp; E International</i>, 30(4), 223–230. https://doi.org/10.1016/S0963-8695(96)00060-6</li>
+<li>Kurz, J. H., Grosse, C. U., &amp; Reinhardt, H.-W. (2005). Strategies for reliable automatic onset time picking of acoustic emissions and of ultrasound signals in concrete. <i>Ultrasonics</i>, 43(7), 538–546. https://doi.org/10.1016/j.ultras.2004.12.005</li>
+<li>Kundu, T. (2014). Acoustic source localization. <i>Ultrasonics</i>, 54(1), 25–38. https://doi.org/10.1016/j.ultras.2013.06.009</li>
+<li>Hensman, J., Mills, R., Pierce, S. G., Worden, K., &amp; Eaton, M. (2010). Locating acoustic emission sources in complex structures using Gaussian processes. <i>Mechanical Systems and Signal Processing</i>, 24(1), 211–223. https://doi.org/10.1016/j.ymssp.2009.05.018</li>
+<li>Schumacher, T., Straub, D., &amp; Higgins, C. (2012). Toward a probabilistic acoustic emission source location algorithm: A Bayesian approach. <i>Journal of Sound and Vibration</i>, 331(19), 4233–4245. https://doi.org/10.1016/j.jsv.2012.04.028</li>
+<li>Madarshahian, R., Ziehl, P., &amp; Caicedo, J. M. (2019). Acoustic emission Bayesian source location: Onset time challenge. <i>Mechanical Systems and Signal Processing</i>, 123, 483–495. https://doi.org/10.1016/j.ymssp.2019.01.021</li>
+<li>Yin, S., Xiao, H., Xu, C., Deng, M., &amp; Kundu, T. (2023). Theoretical error formation and evaluation of acoustic source localization for cluster-based techniques. <i>Ultrasonics</i>, 132, 106982. https://doi.org/10.1016/j.ultras.2023.106982</li>
+<li>Godin, N., Huguet, S., Gaertner, R., &amp; Salmon, L. (2004). Clustering of acoustic emission signals collected during tensile tests on unidirectional glass/polyester composite using supervised and unsupervised classifiers. <i>NDT &amp; E International</i>, 37(4), 253–264. https://doi.org/10.1016/j.ndteint.2003.09.010</li>
+<li>Sause, M. G. R., Gribov, A., Unwin, A. R., &amp; Horn, S. (2012). Pattern recognition approach to identify natural clusters of acoustic emission signals. <i>Pattern Recognition Letters</i>, 33(1), 17–23. https://doi.org/10.1016/j.patrec.2011.09.018</li>
+<li>Farhidzadeh, A., Salamone, S., &amp; Singla, P. (2013). A probabilistic approach for damage identification and crack mode classification in reinforced concrete structures. <i>J. Intelligent Material Systems and Structures</i>, 24(14), 1722–1735. https://doi.org/10.1177/1045389X13484101</li>
+<li>Ramasso, E., et al. (2025). A new criterion based on the distribution of cluster onsets for interpreting acoustic emission data signals: Three case studies in structural and process monitoring. <i>Pattern Analysis and Applications</i>, 28(3), 152. https://doi.org/10.1007/s10044-025-01523-9</li>
+<li>Pénicaud, M., Lequien, F., Fisher, C., &amp; Recoquillay, A. (2025). Review of current trends and uses of machine learning for discrete acoustic emission interpretation. <i>Journal of Nondestructive Evaluation</i>, 44(3), 109. https://doi.org/10.1007/s10921-025-01247-0</li>
+<li>Zaliapin, I., &amp; Ben-Zion, Y. (2013). Earthquake clusters in southern California I: Identification and stability. <i>J. Geophysical Research: Solid Earth</i>, 118(6), 2847–2864. https://doi.org/10.1002/jgrb.50179</li>
+<li>Wang, Y., Ouillon, G., Woessner, J., Sornette, D., &amp; Husen, S. (2013). Automatic reconstruction of fault networks from seismicity catalogs including location uncertainty. <i>J. Geophysical Research: Solid Earth</i>, 118(11), 5956–5975. https://doi.org/10.1002/2013JB010164</li>
+<li>Matochkina, S. D., Shebalin, P. N., Smirnov, V. B., Ponomarev, A. V., &amp; Malyutin, P. A. (2024). Acoustic emission events clustering parameters in laboratory rock fracture experiments. <i>Fizika Zemli</i>, (5), 85–96. https://doi.org/10.31857/S0002333724050066</li>
+<li>Anikiev, D., Birnie, C., bin Waheed, U., Alkhalifah, T., Gu, C., Verschuur, D. J., &amp; Eisner, L. (2023). Machine learning in microseismic monitoring. <i>Earth-Science Reviews</i>, 239, 104371. https://doi.org/10.1016/j.earscirev.2023.104371</li>
+<li>Vijay, R. K., Nanda, S. J., &amp; Sharma, A. (2025). A review on clustering algorithms for spatiotemporal seismicity analysis. <i>Artificial Intelligence Review</i>, 58(8), 231. https://doi.org/10.1007/s10462-025-11229-3</li>
+<li>Sun, X., Lu, R., Wang, W., Yang, F., &amp; He, K. (2025). Automated 3-D modelling of seismic faults using adaptive threshold hierarchical clustering and quantitative assessment. <i>Geophysical Journal International</i>, 244(1), ggaf426. https://doi.org/10.1093/gji/ggaf426</li>
+</ol>
+
+</body></html>

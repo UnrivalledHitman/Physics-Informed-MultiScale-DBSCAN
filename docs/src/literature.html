@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>UA-DBSCAN Literature Review</title>
+<link rel="stylesheet" href="style.css">
+</head><body>
+
+<section class="cover">
+  <div class="kicker">Reading list &amp; annotated literature review</div>
+  <h1>Uncertainty-Aware Multi-Scale DBSCAN for Acoustic Emission Damage Clustering</h1>
+  <div class="sub">38 verified papers across density-based clustering, parameter selection, acoustic emission, source localization uncertainty, AE clustering, and seismology analogues, each with a detailed summary and its relevance to the research topic.</div>
+  <div class="meta">Prepared for: Indrajeet Mondal · September 2026<br>
+  Companion document: <i>UA-DBSCAN Beginner's Guide</i> (same reference numbering).<br>
+  Verification: every entry was checked against Crossref or the publisher record (DOI resolved; authors, year, title, venue, volume and pages matched) in September 2026.</div>
+</section>
+
+<h2>How to use this document</h2>
+<p>Part 1 lists the papers by name so you can find them quickly. Part 2 gives a detailed summary of each paper: what it does, its key ideas, and <b>why it matters for UA-DBSCAN</b>. Part 3 synthesizes the literature: what is established, where the gap is, and how your definition fills it. Part 4 is the verification report.</p>
+
+<div class="box"><b class="t">Reading the status tags</b>
+<span class="paper" style="border:0;padding:0"><span class="tag v">✅ Verified</span></span> means the paper exists and its metadata were confirmed through Crossref or the publisher. A second tag says how much of the <i>content</i> was checked in this session: <b>full text</b> (the relevant section was read), <b>abstract</b> (the abstract was read), or <b>standard account</b> (a widely cited paper summarized from its well-established content; read the full text before relying on specific details). <span class="paper" style="border:0;padding:0"><span class="tag p">⚠️ metadata only</span></span> means the paper exists, but only its title and bibliographic data were seen. Its summary is kept deliberately short, so read it before citing it for anything specific.</div>
+
+<div class="box good"><b class="t">Suggested reading order for a beginner</b>
+[1] DBSCAN → [5] DBSCAN revisited → [23] AE localization review → [15] AE for structural health review → [6] ST-DBSCAN → [7] FDBSCAN → [25] Bayesian AE location → [4] HDBSCAN → [34] ACLUD → [32] ML for AE review → the rest by topic.</div>
+
+<!-- ============================================================ -->
+<h2 class="pb">Part 1: List of papers</h2>
+<table>
+<tr><th style="width:5%">#</th><th>Paper</th><th style="width:13%">Year · Venue</th><th style="width:13%">Topic</th></tr>
+<tr><td colspan="4"><b>A. Density-based clustering foundations</b></td></tr>
+<tr><td>1</td><td>A density-based algorithm for discovering clusters in large spatial databases with noise (Ester, Kriegel, Sander, Xu)</td><td>1996 · KDD-96</td><td>DBSCAN</td></tr>
+<tr><td>2</td><td>Density-based clustering in spatial databases: The algorithm GDBSCAN and its applications (Sander, Ester, Kriegel, Xu)</td><td>1998 · DMKD</td><td>Generalized DBSCAN</td></tr>
+<tr><td>3</td><td>OPTICS: Ordering points to identify the clustering structure (Ankerst, Breunig, Kriegel, Sander)</td><td>1999 · SIGMOD</td><td>Multi-scale density</td></tr>
+<tr><td>4</td><td>Density-based clustering based on hierarchical density estimates (Campello, Moulavi, Sander)</td><td>2013 · PAKDD</td><td>HDBSCAN</td></tr>
+<tr><td>5</td><td>DBSCAN revisited, revisited: Why and how you should (still) use DBSCAN (Schubert, Sander, Ester, Kriegel, Xu)</td><td>2017 · ACM TODS</td><td>Parameter heuristics</td></tr>
+<tr><td>6</td><td>ST-DBSCAN: An algorithm for clustering spatial–temporal data (Birant, Kut)</td><td>2007 · DKE</td><td>Space + time</td></tr>
+<tr><td>7</td><td>Density-based clustering of uncertain data (Kriegel, Pfeifle)</td><td>2005 · KDD</td><td>Uncertainty</td></tr>
+<tr><td colspan="4"><b>B. Parameter selection and cluster validation</b></td></tr>
+<tr><td>8</td><td>Determination of optimal epsilon (Eps) value on DBSCAN algorithm… (Rahmah, Sitanggang)</td><td>2016 · IOP EES</td><td>ε via k-distance</td></tr>
+<tr><td>9</td><td>A new method for automatic determining of the DBSCAN parameters (Starczewski, Goetzen, Er)</td><td>2020 · JAISCR</td><td>Automatic ε</td></tr>
+<tr><td>10</td><td>Clustering stability: An overview (von Luxburg)</td><td>2010 · FnT ML</td><td>Stability</td></tr>
+<tr><td>11</td><td>Density-based clustering validation (Moulavi, Jaskowiak, Campello, Zimek, Sander)</td><td>2014 · SIAM SDM</td><td>DBCV index</td></tr>
+<tr><td>12</td><td>Silhouettes: A graphical aid to the interpretation and validation of cluster analysis (Rousseeuw)</td><td>1987 · JCAM</td><td>Silhouette</td></tr>
+<tr><td>13</td><td>Comparing partitions (Hubert, Arabie)</td><td>1985 · J. Classification</td><td>ARI</td></tr>
+<tr><td colspan="4"><b>C. Acoustic emission fundamentals and damage indicators</b></td></tr>
+<tr><td>14</td><td>Acoustic Emission Testing (Grosse, Ohtsu, eds.)</td><td>2008 · Springer</td><td>Textbook</td></tr>
+<tr><td>15</td><td>Review on structural health evaluation with acoustic emission (Ono)</td><td>2018 · Appl. Sci.</td><td>Review</td></tr>
+<tr><td>16</td><td>The role of acoustic emission in the study of rock fracture (Lockner)</td><td>1993 · IJRMMS</td><td>Rock AE</td></tr>
+<tr><td>17</td><td>Recommendation of RILEM TC 212-ACD: … classification of active cracks in concrete structures by AE (Ohtsu)</td><td>2010 · Mater. Struct.</td><td>Standard</td></tr>
+<tr><td>18</td><td>Crack classification in concrete based on acoustic emission (Ohno, Ohtsu)</td><td>2010 · CBM</td><td>RA–AF</td></tr>
+<tr><td>19</td><td>Classification of cracking mode in concrete by acoustic emission parameters (Aggelis)</td><td>2011 · MRC</td><td>RA–AF</td></tr>
+<tr><td>20</td><td>Assessing damage of reinforced concrete beam using "b-value" analysis of AE signals (Colombo, Main, Forde)</td><td>2003 · JMCE</td><td>b-value</td></tr>
+<tr><td colspan="4"><b>D. Source localization and its uncertainty</b></td></tr>
+<tr><td>21</td><td>Localization and classification of fracture types in concrete with quantitative AE measurement techniques (Grosse, Reinhardt, Dahm)</td><td>1997 · NDT&amp;E Int.</td><td>Localization</td></tr>
+<tr><td>22</td><td>Strategies for reliable automatic onset time picking of AE and ultrasound signals in concrete (Kurz, Grosse, Reinhardt)</td><td>2005 · Ultrasonics</td><td>Onset picking</td></tr>
+<tr><td>23</td><td>Acoustic source localization (Kundu)</td><td>2014 · Ultrasonics</td><td>Review</td></tr>
+<tr><td>24</td><td>Locating AE sources in complex structures using Gaussian processes (Hensman, Mills, Pierce, Worden, Eaton)</td><td>2010 · MSSP</td><td>Data-driven</td></tr>
+<tr><td>25</td><td>Toward a probabilistic AE source location algorithm: A Bayesian approach (Schumacher, Straub, Higgins)</td><td>2012 · JSV</td><td>Bayesian</td></tr>
+<tr><td>26</td><td>Acoustic emission Bayesian source location: Onset time challenge (Madarshahian, Ziehl, Caicedo)</td><td>2019 · MSSP</td><td>Bayesian</td></tr>
+<tr><td>27</td><td>Theoretical error formation and evaluation of acoustic source localization for cluster-based techniques (Yin, Xiao, Xu, Deng, Kundu)</td><td>2023 · Ultrasonics</td><td>Error analysis</td></tr>
+<tr><td colspan="4"><b>E. Clustering and machine learning in AE</b></td></tr>
+<tr><td>28</td><td>Clustering of AE signals collected during tensile tests on unidirectional glass/polyester composite… (Godin, Huguet, Gaertner, Salmon)</td><td>2004 · NDT&amp;E Int.</td><td>Feature clustering</td></tr>
+<tr><td>29</td><td>Pattern recognition approach to identify natural clusters of AE signals (Sause, Gribov, Unwin, Horn)</td><td>2012 · PRL</td><td>Feature clustering</td></tr>
+<tr><td>30</td><td>A probabilistic approach for damage identification and crack mode classification in RC structures (Farhidzadeh, Salamone, Singla)</td><td>2013 · JIMSS</td><td>GMM, RA–AF</td></tr>
+<tr><td>31</td><td>A new criterion based on the distribution of cluster onsets for interpreting AE data signals (Ramasso et al.)</td><td>2025 · PAA</td><td>Cluster timing</td></tr>
+<tr><td>32</td><td>Review of current trends and uses of ML for discrete AE interpretation (Pénicaud, Lequien, Fisher, Recoquillay)</td><td>2025 · J. NDE</td><td>Review</td></tr>
+<tr><td colspan="4"><b>F. Seismology and microseismic analogues (event-catalogue clustering)</b></td></tr>
+<tr><td>33</td><td>Earthquake clusters in southern California I: Identification and stability (Zaliapin, Ben-Zion)</td><td>2013 · JGR</td><td>Space–time proximity</td></tr>
+<tr><td>34</td><td>Automatic reconstruction of fault networks from seismicity catalogs including location uncertainty (Wang, Ouillon, Woessner, Sornette, Husen)</td><td>2013 · JGR</td><td>Uncertainty clustering</td></tr>
+<tr><td>35</td><td>Acoustic emission events clustering parameters in laboratory rock fracture experiments (Matochkina et al.)</td><td>2024 · Fizika Zemli</td><td>Lab AE clustering</td></tr>
+<tr><td>36</td><td>Machine learning in microseismic monitoring (Anikiev et al.)</td><td>2023 · Earth-Sci. Rev.</td><td>Review</td></tr>
+<tr><td>37</td><td>A review on clustering algorithms for spatiotemporal seismicity analysis (Vijay, Nanda, Sharma)</td><td>2025 · AI Review</td><td>Review</td></tr>
+<tr><td>38</td><td>Automated 3-D modelling of seismic faults using adaptive threshold hierarchical clustering… (Sun, Lu, Wang, Yang, He)</td><td>2025 · GJI</td><td>Fault clustering</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 class="pb">Part 2: Detailed summaries</h2>
+
+<h3>A. Density-based clustering foundations</h3>
+
+<div class="paper"><div class="ref">[1] Ester, M., Kriegel, H.-P., Sander, J., &amp; Xu, X. (1996). A density-based algorithm for discovering clusters in large spatial databases with noise. <i>Proc. KDD-96</i>, 226–231. AAAI Press.</div>
+<span class="tag v">✅ Verified (AAAI proceedings PDF retrieved; no DOI)</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Introduces DBSCAN. The paper defines clusters as maximal sets of density-connected points, based on two parameters (Eps and MinPts), and defines core points, border points and noise formally. It proves that clusters are uniquely determined (up to border-point ambiguity) and gives an algorithm that uses a spatial index (R*-tree) for region queries.</p>
+<p><span class="lbl">Key ideas.</span> Clusters of arbitrary shape; no need to specify the number of clusters; explicit noise. For parameter choice it proposes the <i>sorted k-dist graph</i>: plot every point's distance to its k-th nearest neighbour in descending order and set Eps at the first "valley" (the knee). It suggests k = 4 (MinPts = 4) for 2-D data, since larger k gave similar results at higher cost. Experiments on synthetic data and the SEQUOIA 2000 benchmark show DBSCAN finding non-convex clusters that CLARANS misses, at much lower run-time.</p>
+<p><span class="lbl">Relevance to UA-DBSCAN.</span> This is the base algorithm. Its k-dist heuristic is the "ad hoc" ε-selection your definition aims to replace, so it is the primary baseline for part (ii).</p></div>
+
+<div class="paper"><div class="ref">[2] Sander, J., Ester, M., Kriegel, H.-P., &amp; Xu, X. (1998). Density-based clustering in spatial databases: The algorithm GDBSCAN and its applications. <i>Data Mining and Knowledge Discovery</i>, 2(2), 169–194. doi:10.1023/A:1009745219419</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Generalizes DBSCAN in two ways. The ε-neighbourhood becomes any <b>neighbourhood predicate</b> that is symmetric and reflexive, and the "at least MinPts" condition becomes any <b>minimum weighted cardinality</b>. With this, the algorithm can cluster polygons and other extended objects, and can use non-spatial attributes. Applications include astronomy, biology, earth science and geography.</p>
+<p><span class="lbl">Key ideas.</span> The correctness of density-based clustering needs only these abstract properties, not Euclidean geometry. It also contains the MinPts = 2·dim heuristic, cited by Schubert et al. [5].</p>
+<p><span class="lbl">Relevance.</span> This is the <b>theoretical justification</b> for part (i). A neighbourhood defined by an uncertainty-scaled space–time distance is a valid GDBSCAN predicate, so DBSCAN's cluster properties still hold. Cite it when you argue that your non-Euclidean, non-metric distance is legitimate.</p></div>
+
+<div class="paper"><div class="ref">[3] Ankerst, M., Breunig, M. M., Kriegel, H.-P., &amp; Sander, J. (1999). OPTICS: Ordering points to identify the clustering structure. <i>ACM SIGMOD Record</i>, 28(2), 49–60. doi:10.1145/304181.304187</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Instead of producing a single clustering for one ε, OPTICS computes an ordering of the points plus each point's <b>core-distance</b> and <b>reachability-distance</b>. Plotting reachability in this order gives a <b>reachability plot</b>: valleys are clusters, and nested valleys are hierarchical sub-clusters.</p>
+<p><span class="lbl">Key ideas.</span> One run encodes the density-based clusterings for a whole range of ε. Any DBSCAN result (for ε below the generating distance) can be extracted by a horizontal cut. Automatic extraction of hierarchical clusters (the "ξ" method) is also proposed.</p>
+<p><span class="lbl">Relevance.</span> This is the classical <b>multi-scale</b> density method. Your cluster-count curve over ε is a compressed summary of the same information. Use OPTICS as a baseline, and as a visual diagnostic of multi-scale damage structure.</p></div>
+
+<div class="paper"><div class="ref">[4] Campello, R. J. G. B., Moulavi, D., &amp; Sander, J. (2013). Density-based clustering based on hierarchical density estimates. In <i>PAKDD 2013</i>, LNCS 7819, 160–172. doi:10.1007/978-3-642-37456-2_14</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Introduces <b>HDBSCAN</b>. It builds the complete hierarchy of DBSCAN*-style clusterings over all density thresholds (via a minimum spanning tree on the <i>mutual reachability distance</i>), condenses it using a minimum cluster size, and extracts the flat clustering that maximizes total cluster <b>stability</b>, which measures how long clusters persist across density levels.</p>
+<p><span class="lbl">Key ideas.</span> It removes the need for a global ε, handles clusters of varying density, and still labels noise. The main parameter is the minimum cluster size.</p>
+<p><span class="lbl">Relevance.</span> This is the strongest modern baseline and a conceptual sibling of part (ii): both select clusters by persistence across density scales. To be publishable, UA-DBSCAN must show what it adds over HDBSCAN: a physically interpretable ε, an uncertainty-aware distance, and a noise class with physical meaning. HDBSCAN can also be run with your UA distance, which is a useful ablation.</p></div>
+
+<div class="paper"><div class="ref">[5] Schubert, E., Sander, J., Ester, M., Kriegel, H.-P., &amp; Xu, X. (2017). DBSCAN revisited, revisited: Why and how you should (still) use DBSCAN. <i>ACM Transactions on Database Systems</i>, 42(3), Art. 19, 1–21. doi:10.1145/3068335</div>
+<span class="tag v">✅ Verified</span><span class="tag">full text §3.3–4.4 read</span>
+<p><span class="lbl">What it does.</span> A response by the original authors to a SIGMOD 2015 paper that had criticized DBSCAN's run-time. It clarifies the algorithm's complexity and the role of index structures, and re-runs benchmarks. Most usefully for you, it gives practical <b>parameter recommendations</b> (§4.1–4.2).</p>
+<p><span class="lbl">Key ideas.</span> (1) MinPts can often stay at 4 for 2-D data, or 2·dim following [2]; increase it for noisy, large or duplicate-heavy data. (2) ε "should be chosen as small as possible", ideally from domain knowledge, otherwise from the k-distance plot. (3) <b>Red flags for degenerate results</b>: the desirable amount of noise is usually <b>between 1% and 30%</b>, and if the largest component holds <b>more than 20–50%</b> of clustered points, ε is too large or a hierarchical method (OPTICS or HDBSCAN) should be used. (4) Figure 3 of the paper plots the share of clustered points, the size of the largest component, and the <b>number of clusters as a function of ε</b>, and uses these curves to find the useful range of ε. (5) DBSCAN can be paired with any distance function, which grid-based accelerations cannot do.</p>
+<p><span class="lbl">Relevance.</span> This is the <b>most important precedent for part (ii)</b>. Your noise-fraction constraint and cluster-count curve extend their informal heuristics into a formal selection rule. Cite it prominently, and position your contribution as making these heuristics rigorous and physically grounded.</p></div>
+
+<div class="paper"><div class="ref">[6] Birant, D., &amp; Kut, A. (2007). ST-DBSCAN: An algorithm for clustering spatial–temporal data. <i>Data &amp; Knowledge Engineering</i>, 60(1), 208–221. doi:10.1016/j.datak.2006.01.013</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Extends DBSCAN to spatio-temporal data with <b>two distance parameters</b>, Eps1 for spatial distance and Eps2 for non-spatial (e.g. temporal or attribute) distance. A point's neighbours must satisfy both. It adds a density factor to reduce problems with adjacent clusters of different density, and compares values against cluster averages to avoid chaining through slowly drifting attributes. Demonstrated on sea-surface temperature and similar geo-data.</p>
+<p><span class="lbl">Relevance.</span> This is the most direct prior art for combining <b>location and time</b> (part i). Your approach differs by (a) using one combined, dimensionless distance and (b) scaling space by per-event uncertainty. ST-DBSCAN is an essential baseline, and "two thresholds versus one scaled distance" is a design choice you should discuss.</p></div>
+
+<div class="paper"><div class="ref">[7] Kriegel, H.-P., &amp; Pfeifle, M. (2005). Density-based clustering of uncertain data. <i>Proc. 11th ACM SIGKDD</i>, 672–677. doi:10.1145/1081870.1081955</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Proposes <b>FDBSCAN</b> (fuzzy DBSCAN) for objects whose positions are known only as probability distributions. Distances between uncertain objects become <b>distance distribution functions</b>, giving the probability that two objects lie within ε of each other. Core-object and reachability properties become probabilistic, and objects are clustered accordingly.</p>
+<p><span class="lbl">Relevance.</span> This is the <b>closest data-mining ancestor of part (i)</b>. UA-DBSCAN differs in that the uncertainty is physically derived (sensor geometry, wave speed, onset picking), the distance is a closed-form Mahalanobis-type expression, and time is included. You should also consider the FDBSCAN-style probabilistic predicate as an alternative distance.</p></div>
+
+<h3>B. Parameter selection and cluster validation</h3>
+
+<div class="paper"><div class="ref">[8] Rahmah, N., &amp; Sitanggang, I. S. (2016). Determination of optimal epsilon (Eps) value on DBSCAN algorithm to clustering data on peatland hotspots in Sumatra. <i>IOP Conf. Ser.: Earth Environ. Sci.</i>, 31, 012012. doi:10.1088/1755-1315/31/1/012012</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> An applied study that chooses ε for clustering geographic hotspot points by locating the knee of the sorted k-distance curve, then clusters the data with DBSCAN.</p>
+<p><span class="lbl">Relevance.</span> It is a representative example of the <b>k-distance-knee practice</b> widely used in applied papers. It is useful for showing that ε selection in practice is still largely visual, which motivates your automated, physically grounded rule. It is a minor paper, so cite it as an example rather than as an authority.</p></div>
+
+<div class="paper"><div class="ref">[9] Starczewski, A., Goetzen, P., &amp; Er, M. J. (2020). A new method for automatic determining of the DBSCAN parameters. <i>J. Artificial Intelligence and Soft Computing Research</i>, 10(3), 209–221. doi:10.2478/jaiscr-2020-0014</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Proposes an automatic procedure for estimating ε (and the associated MinPts) from the statistics of nearest-neighbour distances, removing the manual knee reading, and tests it on synthetic and benchmark datasets.</p>
+<p><span class="lbl">Relevance.</span> It represents the "automatic ε" literature. None of these methods use measurement uncertainty. That is the gap your physics-based ε fills. Consider it as a secondary baseline for ε selection.</p></div>
+
+<div class="paper"><div class="ref">[10] von Luxburg, U. (2010). Clustering stability: An overview. <i>Foundations and Trends in Machine Learning</i>, 2(3), 235–274. doi:10.1561/2200000008</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Surveys the principle of choosing clustering parameters (usually the number of clusters) by <b>stability</b>: good parameters give clusterings that change little under resampling or perturbation of the data. It discusses when this works, the theory behind it (including known failure cases), and practical protocols.</p>
+<p><span class="lbl">Relevance.</span> This is the theoretical backbone for the "<b>plateau = stable = real structure</b>" argument in part (ii). It also warns that stability is not the same as correctness, which you should acknowledge. It suggests a strong extension: perturb event locations according to Σ (bootstrap) and measure how stable the clusters are.</p></div>
+
+<div class="paper"><div class="ref">[11] Moulavi, D., Jaskowiak, P. A., Campello, R. J. G. B., Zimek, A., &amp; Sander, J. (2014). Density-based clustering validation. <i>Proc. 2014 SIAM Int. Conf. on Data Mining</i>, 839–847. doi:10.1137/1.9781611973440.96</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Introduces <b>DBCV</b>, an internal validity index for density-based clusterings. It compares the lowest-density region inside each cluster with the highest-density region between clusters, and so handles arbitrary shapes and noise, where the silhouette and similar indices fail.</p>
+<p><span class="lbl">Relevance.</span> Use it as the internal metric for evaluating UA-DBSCAN on real data without ground truth. You could also compare "plateau-selected ε" with "DBCV-maximizing ε".</p></div>
+
+<div class="paper"><div class="ref">[12] Rousseeuw, P. J. (1987). Silhouettes: A graphical aid to the interpretation and validation of cluster analysis. <i>J. Computational and Applied Mathematics</i>, 20, 53–65. doi:10.1016/0377-0427(87)90125-7</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Defines the silhouette value of each object: (b − a)/max(a, b), where a is the mean distance to the object's own cluster and b is the mean distance to the nearest other cluster. The average silhouette is used to judge and choose clusterings.</p>
+<p><span class="lbl">Relevance.</span> This is the standard internal metric that reviewers expect. It is biased towards compact, convex clusters, so report it alongside DBCV and explain its limits for crack-shaped clusters.</p></div>
+
+<div class="paper"><div class="ref">[13] Hubert, L., &amp; Arabie, P. (1985). Comparing partitions. <i>Journal of Classification</i>, 2(1), 193–218. doi:10.1007/BF01908075</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Derives the <b>Adjusted Rand Index (ARI)</b>, a chance-corrected measure of agreement between two partitions. It is 1 for identical partitions and has an expected value of 0 for random ones.</p>
+<p><span class="lbl">Relevance.</span> ARI is the main external metric on synthetic data with known clusters. It can also be used to define a stronger plateau criterion, where neighbouring ε values give nearly identical partitions, rather than merely equal cluster counts.</p></div>
+
+<h3>C. Acoustic emission fundamentals and damage indicators</h3>
+
+<div class="paper"><div class="ref">[14] Grosse, C. U., &amp; Ohtsu, M. (Eds.) (2008). <i>Acoustic Emission Testing</i>. Springer. doi:10.1007/978-3-540-69972-9</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it is.</span> An edited textbook covering AE fundamentals: sources and wave propagation, sensors and instrumentation, signal-based versus parameter-based analysis, source localization, moment tensor analysis (Ohtsu's chapter on SiGMA), and applications in concrete, metals, composites and geotechnics. A second edition appeared in 2022 (Springer Tracts in Civil Engineering).</p>
+<p><span class="lbl">Relevance.</span> This is your <b>main textbook</b> for the AE side. Read the chapters on localization and on signal-based analysis first.</p></div>
+
+<div class="paper"><div class="ref">[15] Ono, K. (2018). Review on structural health evaluation with acoustic emission. <i>Applied Sciences</i>, 8(6), 958. doi:10.3390/app8060958</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account (open access)</span>
+<p><span class="lbl">What it does.</span> A broad, open-access review of AE for structural health evaluation by a senior figure in the field. It covers source mechanisms, instrumentation, signal features, source location, and applications to pressure vessels, bridges, concrete, composites and more, including practical assessment criteria.</p>
+<p><span class="lbl">Relevance.</span> This is the best free starting point for learning how AE is used in practice, and a good source for the introduction section of your paper.</p></div>
+
+<div class="paper"><div class="ref">[16] Lockner, D. (1993). The role of acoustic emission in the study of rock fracture. <i>Int. J. Rock Mech. Min. Sci. &amp; Geomech. Abstr.</i>, 30(7), 883–899. doi:10.1016/0148-9062(93)90041-B</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Reviews AE in laboratory rock fracture. It shows that located AE events track micro-crack growth, their clustering and the nucleation of a macroscopic fault, and discusses AE statistics (e.g. b-value) as analogues of earthquake behaviour.</p>
+<p><span class="lbl">Relevance.</span> This is the classic reference for <b>spatio-temporal AE clouds</b> localizing into a fracture: exactly the structure UA-DBSCAN tries to extract. It also bridges AE to seismological clustering methods (Part F).</p></div>
+
+<div class="paper"><div class="ref">[17] Ohtsu, M. (2010). Recommendation of RILEM TC 212-ACD: Acoustic emission and related NDE techniques for crack detection and damage evaluation in concrete. Test method for classification of active cracks in concrete structures by acoustic emission. <i>Materials and Structures</i>, 43(9), 1187–1189. doi:10.1617/s11527-010-9640-6</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it is.</span> A short RILEM technical-committee recommendation that standardizes how active cracks in concrete are classified from AE parameters, principally by plotting the RA value against the average frequency to separate tensile-type from shear-type cracking.</p>
+<p><span class="lbl">Relevance.</span> This is the accepted feature-based criterion for <b>validating your clusters and noise class</b>. For example, check whether damage clusters show the RA–AF evolution expected for developing cracks while the "benign" noise class does not.</p></div>
+
+<div class="paper"><div class="ref">[18] Ohno, K., &amp; Ohtsu, M. (2010). Crack classification in concrete based on acoustic emission. <i>Construction and Building Materials</i>, 24(12), 2339–2346. doi:10.1016/j.conbuildmat.2010.05.004</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Compares parameter-based crack classification (RA versus average frequency) with moment tensor analysis (SiGMA) on concrete specimens, examining how well the simple parameter-based criterion agrees with the physically based moment tensor classification.</p>
+<p><span class="lbl">Relevance.</span> It shows the strengths and limits of RA–AF classification, which you will use to interpret cluster and noise events.</p></div>
+
+<div class="paper"><div class="ref">[19] Aggelis, D. G. (2011). Classification of cracking mode in concrete by acoustic emission parameters. <i>Mechanics Research Communications</i>, 38(3), 153–157. doi:10.1016/j.mechrescom.2011.03.007</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Uses bending and shear-type tests on concrete to show that the tensile and shear phases of fracture produce different AE waveform parameters (RA and average frequency), supporting RA–AF-based classification of the cracking mode.</p>
+<p><span class="lbl">Relevance.</span> Together with [17] and [18], this gives experimental backing for using waveform features to assign physical meaning to clusters.</p></div>
+
+<div class="paper"><div class="ref">[20] Colombo, S., Main, I. G., &amp; Forde, M. C. (2003). Assessing damage of reinforced concrete beam using "b-value" analysis of acoustic emission signals. <i>J. Materials in Civil Engineering</i>, 15(3), 280–286. doi:10.1061/(ASCE)0899-1561(2003)15:3(280)</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Applies the seismological b-value (slope of the amplitude–frequency distribution) to AE from reinforced concrete beams under load, relating changes in b-value to the progression from micro-cracking to macro-cracking.</p>
+<p><span class="lbl">Relevance.</span> This gives a <b>per-cluster damage indicator</b>: compute the b-value inside each UA-DBSCAN cluster and inside the noise class. A decreasing b-value in clusters but not in noise would support the "benign" interpretation in part (iii).</p></div>
+
+<h3>D. Source localization and its uncertainty</h3>
+
+<div class="paper"><div class="ref">[21] Grosse, C. U., Reinhardt, H. W., &amp; Dahm, T. (1997). Localization and classification of fracture types in concrete with quantitative acoustic emission measurement techniques. <i>NDT &amp; E International</i>, 30(4), 223–230. doi:10.1016/S0963-8695(96)00060-6</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Describes quantitative AE in concrete: 3-D source localization from arrival times with multi-sensor arrays (seismology-style algorithms), and fracture-type classification from waveform analysis (moment tensor inversion).</p>
+<p><span class="lbl">Relevance.</span> It shows the standard location pipeline that produces the events you will cluster, and makes clear that location precision in concrete is limited by heterogeneity and onset picking.</p></div>
+
+<div class="paper"><div class="ref">[22] Kurz, J. H., Grosse, C. U., &amp; Reinhardt, H.-W. (2005). Strategies for reliable automatic onset time picking of acoustic emissions and of ultrasound signals in concrete. <i>Ultrasonics</i>, 43(7), 538–546. doi:10.1016/j.ultras.2004.12.005</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Compares automatic onset pickers for AE and ultrasound in concrete, notably the Akaike Information Criterion (AIC) picker, against manual picking. It proposes strategies that make picking more reliable and assesses the resulting accuracy.</p>
+<p><span class="lbl">Relevance.</span> Onset picking error (σ<sub>t</sub>) is the input to your covariance model Σ = σ<sub>t</sub>²(J<sup>T</sup>J)<sup>−1</sup>. This paper helps you choose and justify realistic σ<sub>t</sub> values.</p></div>
+
+<div class="paper"><div class="ref">[23] Kundu, T. (2014). Acoustic source localization. <i>Ultrasonics</i>, 54(1), 25–38. doi:10.1016/j.ultras.2013.06.009</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> A review of acoustic source localization techniques for isotropic and anisotropic plates and structures: triangulation with known wave speed, optimization-based methods, methods for unknown or direction-dependent wave speed, sensor-cluster techniques, and beamforming, with their assumptions and limitations.</p>
+<p><span class="lbl">Relevance.</span> This is the <b>best single entry point to localization</b>. It explains why localization accuracy depends on material and sensor configuration, which is the physical premise of part (i).</p></div>
+
+<div class="paper"><div class="ref">[24] Hensman, J., Mills, R., Pierce, S. G., Worden, K., &amp; Eaton, M. (2010). Locating acoustic emission sources in complex structures using Gaussian processes. <i>Mechanical Systems and Signal Processing</i>, 24(1), 211–223. doi:10.1016/j.ymssp.2009.05.018</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Instead of assuming a wave speed and straight paths, it learns the mapping between source position and arrival-time differences from training sources (e.g. pencil-lead breaks) using Gaussian-process regression. This works on geometrically complex structures and gives a probabilistic estimate of location.</p>
+<p><span class="lbl">Relevance.</span> This is a data-driven route to per-event uncertainty. The GP predictive variance can feed UA-DBSCAN directly, which matters for complex geometries where Equation (3.3) of the guide is inaccurate.</p></div>
+
+<div class="paper"><div class="ref">[25] Schumacher, T., Straub, D., &amp; Higgins, C. (2012). Toward a probabilistic acoustic emission source location algorithm: A Bayesian approach. <i>Journal of Sound and Vibration</i>, 331(19), 4233–4245. doi:10.1016/j.jsv.2012.04.028</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Formulates AE source location as Bayesian inference. Arrival-time errors and the uncertain wave speed are modelled probabilistically, and Markov chain Monte Carlo sampling yields a <b>posterior probability distribution</b> of the source location instead of a point estimate. It is demonstrated on concrete specimens.</p>
+<p><span class="lbl">Relevance.</span> This is the key paper for <b>obtaining per-event uncertainty</b>. Its posterior is exactly the object UA-DBSCAN's distance should use. You can summarize each posterior by its mean and covariance, or use the full samples with an FDBSCAN-style [7] probabilistic distance.</p></div>
+
+<div class="paper"><div class="ref">[26] Madarshahian, R., Ziehl, P., &amp; Caicedo, J. M. (2019). Acoustic emission Bayesian source location: Onset time challenge. <i>Mechanical Systems and Signal Processing</i>, 123, 483–495. doi:10.1016/j.ymssp.2019.01.021</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Extends Bayesian AE location by treating the <b>onset-time picking error</b> explicitly within the probabilistic model, since mis-picked onsets are a dominant source of location error, and shows improved location and uncertainty estimates.</p>
+<p><span class="lbl">Relevance.</span> It gives more realistic Σ estimates and supports the argument that uncertainty is event-specific (it depends on each event's signal quality, not only on geometry).</p></div>
+
+<div class="paper"><div class="ref">[27] Yin, S., Xiao, H., Xu, C., Deng, M., &amp; Kundu, T. (2023). Theoretical error formation and evaluation of acoustic source localization for cluster-based techniques. <i>Ultrasonics</i>, 132, 106982. doi:10.1016/j.ultras.2023.106982</div>
+<span class="tag p">⚠️ metadata only</span>
+<p><span class="lbl">What it does (from title and venue).</span> A theoretical analysis of how localization errors form, and how to evaluate them, for "cluster-based" localization techniques. Here "cluster" means small groups of closely spaced sensors, not event clustering.</p>
+<p><span class="lbl">Relevance.</span> It is likely useful for building an analytical model of how sensor geometry shapes Σ. Read the paper before citing it for specifics.</p></div>
+
+<h3>E. Clustering and machine learning in AE</h3>
+
+<div class="paper"><div class="ref">[28] Godin, N., Huguet, S., Gaertner, R., &amp; Salmon, L. (2004). Clustering of acoustic emission signals collected during tensile tests on unidirectional glass/polyester composite using supervised and unsupervised classifiers. <i>NDT &amp; E International</i>, 37(4), 253–264. doi:10.1016/j.ndteint.2003.09.010</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Clusters AE signals from composite tensile tests in <b>waveform-feature space</b>, using unsupervised k-means and a Kohonen self-organizing map and then a supervised classifier, to separate damage mechanisms such as matrix cracking, fibre–matrix debonding and fibre breakage.</p>
+<p><span class="lbl">Relevance.</span> This is a classic of AE clustering. It shows the dominant paradigm (clustering <i>signals by mechanism</i>) that your work complements with clustering <i>events by location and time</i>.</p></div>
+
+<div class="paper"><div class="ref">[29] Sause, M. G. R., Gribov, A., Unwin, A. R., &amp; Horn, S. (2012). Pattern recognition approach to identify natural clusters of acoustic emission signals. <i>Pattern Recognition Letters</i>, 33(1), 17–23. doi:10.1016/j.patrec.2011.09.018</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Addresses the key weakness of k-means-type AE clustering, namely choosing the number of clusters and the features. It proposes an exhaustive procedure over feature combinations and cluster numbers, scored with several validity indices, to find the "natural" clusters in AE data from composites.</p>
+<p><span class="lbl">Relevance.</span> It shows that <b>parameter selection is a recognized, unsolved problem in AE clustering</b>, which directly supports the motivation for part (ii). Its methodology (combining several validity criteria) is a model for your evaluation.</p></div>
+
+<div class="paper"><div class="ref">[30] Farhidzadeh, A., Salamone, S., &amp; Singla, P. (2013). A probabilistic approach for damage identification and crack mode classification in reinforced concrete structures. <i>J. Intelligent Material Systems and Structures</i>, 24(14), 1722–1735. doi:10.1177/1045389X13484101</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Uses Gaussian mixture modelling of AE parameters (RA and average frequency) from reinforced concrete tests to classify crack modes probabilistically, giving each event a probability of being tensile or shear rather than a hard label.</p>
+<p><span class="lbl">Relevance.</span> It is a good example of <b>probabilistic interpretation of AE</b> and a way to attach soft mechanism labels to your spatial clusters. It is also a model-based alternative to density-based clustering that you can contrast in your literature review.</p></div>
+
+<div class="paper"><div class="ref">[31] Ramasso, E., Mbarga Nkogo, M., Chandarana, N., Bourbon, G., Le Moal, P., Lefèbvre, Q., Personeni, M., Soutis, C., Gresil, M., &amp; Thibaud, S. (2025). A new criterion based on the distribution of cluster onsets for interpreting acoustic emission data signals: Three case studies in structural and process monitoring. <i>Pattern Analysis and Applications</i>, 28(3), 152. doi:10.1007/s10044-025-01523-9</div>
+<span class="tag p">⚠️ metadata only</span>
+<p><span class="lbl">What it does (from title; an arXiv preprint version is titled "A Novel Criterion for Interpreting Acoustic Emission Damage Signals Based on Cluster Onset Distribution").</span> Proposes a criterion that uses the <b>timing of when clusters first appear</b> (cluster onsets) during a test to interpret and select AE clusterings, and demonstrates it on three monitoring case studies.</p>
+<p><span class="lbl">Relevance.</span> It is recent work that brings <b>time</b> into AE cluster interpretation, and relates to both the temporal term in part (i) and the question of choosing among clusterings. Read the full text before citing it.</p></div>
+
+<div class="paper"><div class="ref">[32] Pénicaud, M., Lequien, F., Fisher, C., &amp; Recoquillay, A. (2025). Review of current trends and uses of machine learning for discrete acoustic emission interpretation. <i>Journal of Nondestructive Evaluation</i>, 44(3), 109. doi:10.1007/s10921-025-01247-0</div>
+<span class="tag v">✅ Verified</span><span class="tag">abstract read</span>
+<p><span class="lbl">What it does.</span> Reviews how machine-learning algorithms are used in major AE applications (fatigue, corrosion, leak detection, damage mechanisms) to interpret damage. It explores how ML enables the study of more complex phenomena and discusses the conditions, precautions and limitations of its use, and future prospects.</p>
+<p><span class="lbl">Relevance.</span> This is the most up-to-date survey for your related-work section. Use it to show where density-based, location-space clustering sits (or is missing) in current AE-ML practice.</p></div>
+
+<h3>F. Seismology and microseismic analogues</h3>
+
+<div class="paper"><div class="ref">[33] Zaliapin, I., &amp; Ben-Zion, Y. (2013). Earthquake clusters in southern California I: Identification and stability. <i>J. Geophysical Research: Solid Earth</i>, 118(6), 2847–2864. doi:10.1002/jgrb.50179</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> Identifies earthquake clusters using a <b>nearest-neighbour proximity</b> that combines inter-event time, spatial distance (scaled by fractal dimension) and magnitude. The distribution of this proximity is bimodal, separating clustered from background seismicity. The authors test the <b>stability</b> of the identified clusters with respect to catalogue uncertainties and parameter choices.</p>
+<p><span class="lbl">Relevance.</span> This is a well-established <b>space–time distance</b> for event catalogues, and a principled way to separate clustered from background events, analogous to your noise class. Its stability analysis parallels your plateau idea. It is a strong alternative distance to compare against.</p></div>
+
+<div class="paper"><div class="ref">[34] Wang, Y., Ouillon, G., Woessner, J., Sornette, D., &amp; Husen, S. (2013). Automatic reconstruction of fault networks from seismicity catalogs including location uncertainty. <i>J. Geophysical Research: Solid Earth</i>, 118(11), 5956–5975. doi:10.1002/2013JB010164</div>
+<span class="tag v">✅ Verified</span><span class="tag">abstract read</span>
+<p><span class="lbl">What it does.</span> Introduces <b>ACLUD</b> (anisotropic clustering of location uncertainty distributions), which reconstructs active fault networks from earthquake locations <b>and their individual location uncertainties</b>. Among many candidate fault networks, the best is chosen with six validation procedures (cross-validation, BIC, and four based on agreement with focal mechanisms). Tests on synthetic catalogues show good recovery, especially with the BIC and focal-mechanism criteria, even with substantial background seismicity. Applied to the Landers area, the results stress the importance of <b>spatially inhomogeneous location uncertainties</b>.</p>
+<p><span class="lbl">Relevance.</span> This is the <b>closest prior art in spirit</b>: clustering events while explicitly using per-event location uncertainty. It differs in fitting planar fault segments rather than density clusters. Reviewers from geophysics will know it, so you must cite it and explain how UA-DBSCAN differs (density-based, no planar-shape assumption, explicit noise class, AE scale).</p></div>
+
+<div class="paper"><div class="ref">[35] Matochkina, S. D., Shebalin, P. N., Smirnov, V. B., Ponomarev, A. V., &amp; Malyutin, P. A. (2024). Acoustic emission events clustering parameters in laboratory rock fracture experiments. <i>Fizika Zemli</i>, (5), 85–96. doi:10.31857/S0002333724050066</div>
+<span class="tag v">✅ Verified</span><span class="tag">abstract read</span>
+<p><span class="lbl">What it does.</span> Tests whether the earthquake productivity law holds for AE in laboratory rock fracture, using AE catalogues from uniaxial loading of Westerly granite and Bentheim sandstone (USGS Menlo Park and GFZ Potsdam data). It finds a <b>unimodal</b> distribution of the nearest-neighbour proximity function for these AE events (unlike the bimodal one in tectonic seismicity), and that the productivity law holds.</p>
+<p><span class="lbl">Relevance.</span> This is direct evidence that <b>seismological space–time clustering tools transfer to AE</b>, with an important caveat: the clean clustered/background separation seen in earthquakes may not appear in lab AE. This is a useful warning for part (iii). (The journal is Russian-language; an English translation appears in <i>Izvestiya, Physics of the Solid Earth</i>.)</p></div>
+
+<div class="paper"><div class="ref">[36] Anikiev, D., Birnie, C., bin Waheed, U., Alkhalifah, T., Gu, C., Verschuur, D. J., &amp; Eisner, L. (2023). Machine learning in microseismic monitoring. <i>Earth-Science Reviews</i>, 239, 104371. doi:10.1016/j.earscirev.2023.104371</div>
+<span class="tag v">✅ Verified</span><span class="tag">standard account</span>
+<p><span class="lbl">What it does.</span> A comprehensive review of machine learning across the microseismic workflow: event detection, arrival picking, location, source characterization, and interpretation, including clustering of event clouds.</p>
+<p><span class="lbl">Relevance.</span> Microseismic monitoring is AE at field scale. This review shows which ML ideas, including clustering of located events, have been tried at larger scales and could transfer to AE.</p></div>
+
+<div class="paper"><div class="ref">[37] Vijay, R. K., Nanda, S. J., &amp; Sharma, A. (2025). A review on clustering algorithms for spatiotemporal seismicity analysis. <i>Artificial Intelligence Review</i>, 58(8), 231. doi:10.1007/s10462-025-11229-3</div>
+<span class="tag v">✅ Verified</span><span class="tag">abstract read</span>
+<p><span class="lbl">What it does.</span> Reviews data-driven earthquake clustering algorithms, models and mechanisms for seismological applications, including a short review of the empirical laws of statistical seismology and of <b>declustering</b> (separating triggered from background events).</p>
+<p><span class="lbl">Relevance.</span> This is a map of spatio-temporal event clustering methods (including DBSCAN variants) from a neighbouring field. Declustering is the seismological twin of your "noise as benign background" idea.</p></div>
+
+<div class="paper"><div class="ref">[38] Sun, X., Lu, R., Wang, W., Yang, F., &amp; He, K. (2025). Automated 3-D modelling of seismic faults using adaptive threshold hierarchical clustering and quantitative assessment. <i>Geophysical Journal International</i>, 244(1), ggaf426. doi:10.1093/gji/ggaf426</div>
+<span class="tag v">✅ Verified</span><span class="tag">abstract read</span>
+<p><span class="lbl">What it does.</span> Builds 3-D fault models automatically from relocated hypocentres. It uses a nearest-neighbour index to test whether seismicity is clustered, <b>adaptive-threshold hierarchical clustering</b> to find the event clusters belonging to each fault, automatic slicing and surface interpolation to model the faults, and kernel density estimates of event-to-fault distances to assess and optimize the models. The motivation is that manual interpretation is non-unique because of uneven hypocentre distributions and location uncertainty.</p>
+<p><span class="lbl">Relevance.</span> This is a recent example of <b>adaptive (data-driven) threshold selection</b> for clustering located events, conceptually parallel to your ε rule. It is a good citation for the claim that fixed thresholds are a recognized problem.</p></div>
+
+<!-- ============================================================ -->
+<h2 class="pb">Part 3: Synthesis — what the literature says and where the gap is</h2>
+
+<h3>3.1 What is well established</h3>
+<ul>
+<li><b>Density-based clustering</b> is well understood. DBSCAN [1] and its generalization [2] define clusters by density-connectivity and label noise. Multi-scale variants [3, 4] avoid a single ε. Heuristics for ε exist [1, 5, 8, 9], but they are geometric (k-distance knees) or informal (noise 1–30%, largest cluster below 20–50% [5]).</li>
+<li><b>Spatio-temporal</b> [6] and <b>uncertain-data</b> [7] extensions of DBSCAN exist in data mining, but separately and without a physical model of the uncertainty.</li>
+<li><b>AE source localization is inherently uncertain</b>, and the uncertainty depends on onset picking [22], wave-speed assumptions and material [21, 23], and sensor geometry [27]. Bayesian and GP methods can quantify it per event [24–26].</li>
+<li><b>AE clustering</b> is common, but overwhelmingly in <b>waveform-feature space</b> to separate damage mechanisms [28–30, 32], and choosing the number of clusters is a known difficulty [29].</li>
+<li><b>Seismology</b> has mature tools for clustering event catalogues in space–time [33, 37], separating background from clustered activity (declustering), and even using per-event location uncertainty [34]. These tools are starting to be tested on lab AE [35].</li>
+</ul>
+
+<h3>3.2 The gap your definition targets</h3>
+<table>
+<tr><th style="width:28%">Component of UA-DBSCAN</th><th>Closest prior work</th><th style="width:36%">What is missing (your contribution)</th></tr>
+<tr><td>(i) Location + time distance scaled by per-event uncertainty</td><td>ST-DBSCAN [6] (space + time, no uncertainty); FDBSCAN [7] (uncertainty, no physics, no time); ACLUD [34] (uncertainty, planar faults, seismology); Zaliapin &amp; Ben-Zion [33] (space–time proximity, no per-event uncertainty)</td><td>A single distance that combines AE location, time and <b>physically derived</b> per-event covariance, applied to AE damage clustering.</td></tr>
+<tr><td>(ii) ε from a cluster-count plateau with a noise constraint</td><td>k-distance knee [1, 8]; automatic ε [9]; informal red flags and ε-sweep plots [5]; stability theory [10]; HDBSCAN stability [4]</td><td>A <b>formal, reproducible</b> selection rule. Because the distance is in standard-error units, the selected ε becomes <b>interpretable</b> and can be checked against statistical expectations (e.g. a χ² quantile).</td></tr>
+<tr><td>(iii) Noise as "isolated, benign activity"</td><td>DBSCAN noise is usually discarded [1, 5]; seismological declustering [33, 37]; RA–AF and b-value interpretation [17–20]</td><td>Treating AE noise as a <b>reportable class</b> and validating its benign character with AE features and ground truth.</td></tr>
+</table>
+
+<h3>3.3 Tensions and risks to address in your work</h3>
+<ul>
+<li><b>HDBSCAN [4] already selects clusters by stability without ε.</b> You need a clear argument for why an explicit, physically interpretable ε, plus the noise constraint, is preferable in AE monitoring. Examples: reproducibility across tests, and thresholds engineers can interpret.</li>
+<li><b>Lab AE may not show a clean clustered/background split</b> [35]. The "benign noise" interpretation must therefore be demonstrated, not assumed.</li>
+<li><b>Uncertainty models can be wrong.</b> If Σ is underestimated, a Mahalanobis-type distance inflates separations. If Σ is overestimated, it merges clusters. Poorly located events with very large Σ can act as bridges between clusters. Sensitivity to Σ mis-specification is a necessary experiment.</li>
+<li><b>Stability is not the same as correctness</b> [10]. A plateau can be stable yet wrong, so ground-truth experiments (synthetic data, crack maps) are essential.</li>
+</ul>
+
+<h3>3.4 Additional sources worth looking up later</h3>
+<p class="small">These are pointers for further searching, not citations. None were verified for this document.</p>
+<ul class="small">
+<li>ACLUD's predecessor on 3-D optimal anisotropic dynamic clustering of seismicity (Ouillon, Ducorbier &amp; Sornette, JGR, 2008). Its existence was seen in a Crossref search result but not checked in detail.</li>
+<li>Theses and dissertations applying DBSCAN directly to AE signals (e.g. adhesively bonded joints under fatigue). Search institutional repositories such as POLITesi.</li>
+<li>Recent sensor-placement papers for AE localization (Bayesian optimal sensor placement), which model location uncertainty explicitly.</li>
+<li>Streaming or incremental DBSCAN, for online monitoring.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>Part 4: Verification report</h2>
+<table>
+<tr><th>Status</th><th>Count</th><th>References</th></tr>
+<tr><td>✅ Verified: existence and metadata confirmed (Crossref DOI lookup, or the AAAI proceedings PDF for [1])</td><td>36</td><td>1–26, 28–30, 32–38</td></tr>
+<tr><td>⚠️ Exists (DOI and metadata confirmed), but content not read in this session</td><td>2</td><td>27, 31</td></tr>
+<tr><td>❌ Unverified</td><td>0</td><td>None</td></tr>
+</table>
+<p><b>Content-checking levels.</b> Full text of the relevant section: [5] (§3.3–4.4, including the 1–30% noise and 20–50% largest-cluster heuristics). Abstract read: [32], [34], [35], [37], [38]. The remaining verified papers are widely cited works summarized from their established content. <b>Before citing any specific number, method detail or claim from them in your own paper, read the original.</b></p>
+<p><b>Paywalls.</b> Many of these are paywalled (Elsevier, Springer, Wiley, SAGE, ACM). Open-access or freely available: [1] (AAAI), [8] (IOP, open access), [9] (JAISCR, open access), [15] (MDPI, open access). Author copies of [5] and others are often available through Google Scholar. Use your university library for the rest.</p>
+<p><b>AI-use note.</b> This reading list and the summaries were prepared with AI assistance. If you reuse text from them in a submission, check your target journal's policy on disclosing AI assistance.</p>
+
+</body></html>
